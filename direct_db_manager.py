@@ -2480,6 +2480,7 @@ class UserManagementDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Operation failed: {str(e)}")
+# TODO: This part is causing UI freezing. Please suggest a refactor using QThread or async technique to prevent Not Responding.
 
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
