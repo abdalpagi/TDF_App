@@ -1,0 +1,60 @@
+2025-07-18 05:10:14,210 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-18 05:10:14,210 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-18 05:10:14,247 - INFO - Initializing configuration...
+2025-07-18 05:10:14,249 - INFO - Configuration saved successfully
+2025-07-18 05:10:14,249 - INFO - Configuration initialized successfully
+2025-07-18 05:10:14,249 - INFO - Testing database initialization...
+2025-07-18 05:10:14,251 - INFO - SQLite database initialized successfully
+2025-07-18 05:10:14,625 - INFO - Server connected - 642 vehicles in database
+2025-07-18 05:10:14,691 - INFO - Database initialization successful
+2025-07-18 05:10:14,691 - INFO - Initializing user manager...
+2025-07-18 05:10:14,691 - INFO - Using local database path: C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db
+2025-07-18 05:10:14,692 - INFO - Users table exists, checking schema...
+2025-07-18 05:10:14,693 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-18 05:10:14,693 - INFO - Found 3 existing users in database
+2025-07-18 05:10:14,693 - INFO - Checking and updating existing users...
+2025-07-18 05:10:14,693 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-18 05:10:14,693 - INFO - User tables initialized successfully with schema migration
+2025-07-18 05:10:14,693 - INFO - User manager initialized successfully
+2025-07-18 05:10:14,694 - INFO - Found 3 default users in database
+2025-07-18 05:10:17,148 - INFO - Attempting authentication for user: admin
+2025-07-18 05:10:17,156 - INFO - Authentication successful for user: admin
+2025-07-18 05:10:17,156 - INFO - Login successful for: admin
+2025-07-18 05:10:17,270 - INFO - Login successful for user: admin (Role: admin)
+2025-07-18 05:10:17,280 - INFO - SQLite database initialized successfully
+2025-07-18 05:10:17,825 - INFO - Server connected - 642 vehicles in database
+2025-07-18 05:10:17,898 - INFO - Users table exists, checking schema...
+2025-07-18 05:10:17,898 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-18 05:10:17,898 - INFO - Found 3 existing users in database
+2025-07-18 05:10:17,898 - INFO - Checking and updating existing users...
+2025-07-18 05:10:17,899 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-18 05:10:17,899 - INFO - User tables initialized successfully with schema migration
+2025-07-18 05:10:17,949 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-18 05:10:18,131 - INFO - Modern main window created and displayed successfully
+2025-07-18 05:10:18,132 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-18 05:10:18,132 - INFO - Enhanced features:
+2025-07-18 05:10:18,133 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-18 05:10:18,133 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-18 05:10:18,133 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-18 05:10:18,133 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-18 05:10:18,133 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-18 05:10:18,133 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-18 05:10:18,133 - INFO - Current user role: admin - Modern interface ready
+2025-07-18 05:10:18,664 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-18 05:10:18,666 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-18 05:10:18,667 - INFO - Dashboard refreshed with filters: False
+2025-07-18 05:10:18,667 - INFO - Initial dashboard data loaded
+2025-07-18 05:10:26,318 - INFO - Monitoring started successfully
+2025-07-18 05:10:56,089 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-18 05:10:56,090 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-18 05:10:56,091 - INFO - Dashboard refreshed with filters: False
+2025-07-18 05:11:35,318 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-18 05:11:35,321 - INFO - Ban table loaded with 3 records, filters: False
+2025-07-18 05:11:44,464 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-18 05:11:44,464 - INFO - Ban table loaded with 3 records, filters: False
+2025-07-18 05:11:44,464 - INFO - Ban filters cleared
+2025-07-18 05:12:30,176 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-18 05:12:30,176 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-18 05:12:30,177 - INFO - Dashboard refreshed with filters: False
+2025-07-18 05:13:05,577 - INFO - TDF System shutdown initiated - User: admin
+2025-07-18 05:13:05,578 - INFO - TDF System shutdown completed - User: admin
