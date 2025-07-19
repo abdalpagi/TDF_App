@@ -3,7 +3,7 @@ TDF System - Enhanced Version with Modern UI, Fixed Filters and Role-Based Acces
 Features: Modern Professional UI, Fixed filter functionality, Role-based permissions, Database path configuration, User account management
 Updated: Modern typography, enhanced visual design, improved accessibility and readability
 """
-#coderabbitai the filters in this PyQt5 dashboard and ban management are not applying correctly, can you help debug?
+#coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
 
 
 import sys
