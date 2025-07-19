@@ -1,6 +1,6 @@
 {
-    "server_db_path": "/path/to/your/TruckAutoId.mdb",
-    "local_sqlite_path": "/path/to/your/tdf_app.db",
+    "server_db_path": "/path/to/server/database.mdb",
+    "local_sqlite_path": "/path/to/local/database.db",
     "connection_timeout": 3,
     "cache_timeout": 5,
     "monitor_interval": 3,
