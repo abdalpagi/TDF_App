@@ -1,0 +1,11 @@
+{
+    "server_db_path": ${"C:\Users\abdalbagi.a\Desktop\APPPPNEW\TruckAutoId_copy.accdb"},
+    "local_sqlite_path": ${"C:\Users\abdalbagi.a\Desktop\CleanTDF\tdf_app.db"},
+    "connection_timeout": 3,
+    "cache_timeout": 5,
+    "monitor_interval": 3,
+    "auto_refresh_interval": 60,
+    "default_user": "admin",
+    "sound_enabled": true,
+    "warning_sound_duration": 3.0
+}
