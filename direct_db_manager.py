@@ -3,7 +3,8 @@ TDF System - Enhanced Version with Modern UI, Fixed Filters and Role-Based Acces
 Features: Modern Professional UI, Fixed filter functionality, Role-based permissions, Database path configuration, User account management
 Updated: Modern typography, enhanced visual design, improved accessibility and readability
 """
-# TODO: This file may contain unused functions, imports, or variables. Please help identify and suggest cleanup for dead code.
+#coderabbitai the filters in this PyQt5 dashboard and ban management are not applying correctly, can you help debug?
+
 
 import sys
 import os

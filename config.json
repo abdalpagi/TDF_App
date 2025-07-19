@@ -1,6 +1,6 @@
 {
-    "server_db_path": "\\\\192.168.137.59\\rfid\\TruckAutoId.mdb",
-    "local_sqlite_path": "C:\\Users\\abdalbagi.a\\Desktop\\APP\\tdf_app.db",
+    "server_db_path": "C:/Users/abdalbagi.a/Desktop/APPPPNEW/TruckAutoId_copy.mdb",
+    "local_sqlite_path": "C:/Users/abdalbagi.a/Desktop/APPPPNEW/tdf_app.db",
     "connection_timeout": 3,
     "cache_timeout": 5,
     "monitor_interval": 3,
