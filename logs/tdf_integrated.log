@@ -1506,3 +1506,452 @@
 2025-07-19 07:31:47,720 - INFO - Testing database initialization...
 2025-07-19 07:31:47,720 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
 2025-07-19 07:31:47,720 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:52:03,047 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:52:03,047 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:52:03,241 - INFO - Initializing configuration...
+2025-07-19 07:52:03,242 - INFO - Configuration initialized successfully
+2025-07-19 07:52:03,242 - INFO - Testing database initialization...
+2025-07-19 07:52:03,244 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:52:03,244 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:53:03,153 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:53:03,154 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:53:03,230 - INFO - Initializing configuration...
+2025-07-19 07:53:03,233 - INFO - Configuration initialized successfully
+2025-07-19 07:53:03,233 - INFO - Testing database initialization...
+2025-07-19 07:53:03,234 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:53:03,234 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:54:36,868 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:54:36,869 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:54:36,915 - INFO - Initializing configuration...
+2025-07-19 07:54:36,916 - ERROR - Error loading config: Invalid \escape: line 2 column 26 (char 27)
+2025-07-19 07:54:36,916 - INFO - Configuration initialized successfully
+2025-07-19 07:54:36,916 - INFO - Testing database initialization...
+2025-07-19 07:54:36,922 - INFO - SQLite database initialized successfully
+2025-07-19 07:54:37,652 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:54:37,773 - INFO - Database initialization successful
+2025-07-19 07:54:37,774 - INFO - Initializing user manager...
+2025-07-19 07:54:37,774 - INFO - Using local database path: C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db
+2025-07-19 07:54:37,785 - INFO - Users table exists, checking schema...
+2025-07-19 07:54:37,785 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:54:37,785 - INFO - Found 3 existing users in database
+2025-07-19 07:54:37,786 - INFO - Checking and updating existing users...
+2025-07-19 07:54:37,786 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:54:37,786 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:54:37,786 - INFO - User manager initialized successfully
+2025-07-19 07:54:37,788 - INFO - Found 3 default users in database
+2025-07-19 07:54:40,879 - INFO - Attempting authentication for user: admin
+2025-07-19 07:54:40,915 - INFO - Authentication successful for user: admin
+2025-07-19 07:54:40,915 - INFO - Login successful for: admin
+2025-07-19 07:54:40,923 - INFO - Login successful for user: admin (Role: admin)
+2025-07-19 07:54:40,931 - INFO - SQLite database initialized successfully
+2025-07-19 07:54:41,021 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:54:41,092 - INFO - Users table exists, checking schema...
+2025-07-19 07:54:41,093 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:54:41,093 - INFO - Found 3 existing users in database
+2025-07-19 07:54:41,093 - INFO - Checking and updating existing users...
+2025-07-19 07:54:41,094 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:54:41,094 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:54:41,135 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-19 07:54:41,186 - INFO - Modern main window created and displayed successfully
+2025-07-19 07:54:41,186 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-19 07:54:41,187 - INFO - Enhanced features:
+2025-07-19 07:54:41,187 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-19 07:54:41,187 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-19 07:54:41,187 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-19 07:54:41,187 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-19 07:54:41,187 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-19 07:54:41,187 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-19 07:54:41,187 - INFO - Current user role: admin - Modern interface ready
+2025-07-19 07:54:41,605 - INFO - Server connection test started asynchronously
+2025-07-19 07:54:41,605 - INFO - Local connection test started asynchronously
+2025-07-19 07:54:41,617 - INFO - DatabaseWorker thread started
+2025-07-19 07:54:41,618 - INFO - Operation started: op_1_1752897281 - Testing database connection...
+2025-07-19 07:54:41,674 - INFO - Initial dashboard load started asynchronously
+2025-07-19 07:54:41,791 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:54:41,868 - INFO - Connection test server: Success
+2025-07-19 07:54:41,869 - INFO - Connection test server: Success - Server connection successful
+2025-07-19 07:54:41,869 - INFO - Operation completed: test_server
+2025-07-19 07:54:41,869 - INFO - Operation started: op_2_1752897281 - Testing database connection...
+2025-07-19 07:54:41,870 - INFO - Connection test local: Success
+2025-07-19 07:54:41,873 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:54:41,874 - INFO - Connection test local: Success - Local connection successful (4 tables)
+2025-07-19 07:54:41,874 - INFO - Operation completed: test_local
+2025-07-19 07:54:41,875 - INFO - Operation started: op_3_1752897281 - Calculating statistics...
+2025-07-19 07:54:41,875 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:54:41,875 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:54:41,884 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:54:41,884 - INFO - Operation completed: initial_dashboard_load
+2025-07-19 07:54:43,848 - INFO - Monitoring started successfully
+2025-07-19 07:54:45,142 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:54:45,142 - INFO - Operation started: op_4_1752897285 - Calculating statistics...
+2025-07-19 07:54:45,195 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:54:45,197 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:54:45,198 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:54:45,200 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:54:45,201 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:54:48,334 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:54:48,335 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 07:54:48,335 - INFO - Operation started: op_5_1752897288 - Calculating statistics...
+2025-07-19 07:54:48,350 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 07:54:48,352 - INFO - Log query executed with 3 parameters, returned 15 results
+2025-07-19 07:54:48,352 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:54:48,353 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:54:48,353 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:54:51,267 - INFO - Logs table load started asynchronously
+2025-07-19 07:54:51,267 - INFO - Operation started: op_6_1752897291 - Loading activity logs...
+2025-07-19 07:54:51,277 - INFO - Log query executed with 3 parameters, returned 62 results
+2025-07-19 07:54:51,278 - INFO - Loaded 62 log records
+2025-07-19 07:54:51,281 - INFO - Logs table updated with 62 records
+2025-07-19 07:54:51,281 - INFO - Operation completed: load_logs
+2025-07-19 07:54:53,794 - INFO - Log query executed with 3 parameters, returned 62 results
+2025-07-19 07:54:53,796 - INFO - Log table loaded with 62 records, filters: True
+2025-07-19 07:54:53,796 - INFO - Log filters applied: {'start_date': '2025-07-12', 'end_date': '2025-07-19'}
+2025-07-19 07:55:00,451 - INFO - Ban table load started asynchronously
+2025-07-19 07:55:00,451 - INFO - Ban table load started asynchronously
+2025-07-19 07:55:00,452 - INFO - Operation started: op_7_1752897300 - Loading ban records...
+2025-07-19 07:55:00,469 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:55:00,469 - INFO - Loaded 3 ban records
+2025-07-19 07:55:00,471 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:55:00,471 - INFO - Bans table updated with 3 records
+2025-07-19 07:55:00,471 - INFO - Loaded 3 ban records
+2025-07-19 07:55:00,471 - INFO - Operation completed: load_bans
+2025-07-19 07:55:00,472 - INFO - Operation started: op_8_1752897300 - Loading ban records...
+2025-07-19 07:55:00,474 - INFO - Bans table updated with 3 records
+2025-07-19 07:55:00,474 - INFO - Operation completed: load_bans
+2025-07-19 07:55:07,052 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:55:07,052 - INFO - Operation started: op_9_1752897307 - Calculating statistics...
+2025-07-19 07:55:07,061 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 07:55:07,063 - INFO - Log query executed with 3 parameters, returned 15 results
+2025-07-19 07:55:07,063 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:55:07,064 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:55:07,064 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:55:09,013 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:55:09,013 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 07:55:09,014 - INFO - Operation started: op_10_1752897309 - Calculating statistics...
+2025-07-19 07:55:09,022 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 07:55:09,024 - INFO - Log query executed with 3 parameters, returned 15 results
+2025-07-19 07:55:09,024 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:55:09,025 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:55:09,026 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:55:12,558 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:55:12,563 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 07:55:12,564 - INFO - Log query executed with 3 parameters, returned 15 results
+2025-07-19 07:55:12,564 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:55:12,566 - INFO - Operation started: op_11_1752897312 - Calculating statistics...
+2025-07-19 07:55:12,575 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:55:12,576 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:55:15,452 - INFO - Latest tanker verification started asynchronously
+2025-07-19 07:55:15,453 - INFO - Operation started: op_12_1752897315 - Verifying tanker...
+2025-07-19 07:55:17,051 - ERROR - Error getting latest tanker: All connection attempts failed
+2025-07-19 07:55:48,431 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:55:55,409 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:56:07,333 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:56:08,822 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:56:10,007 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:56:15,448 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:57:33,775 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:57:42,366 - INFO - Server connection test started asynchronously
+2025-07-19 07:57:51,008 - INFO - Server connection test started asynchronously
+2025-07-19 07:57:51,008 - INFO - Local connection test started asynchronously
+2025-07-19 07:57:51,665 - INFO - Server connection test started asynchronously
+2025-07-19 07:57:51,666 - INFO - Local connection test started asynchronously
+2025-07-19 07:57:55,367 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 07:57:55,368 - INFO - Stopping database worker thread...
+2025-07-19 07:57:55,368 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 07:58:00,383 - INFO - DatabaseWorker thread stopped
+2025-07-19 07:58:00,510 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 07:58:06,469 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:58:06,469 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:58:06,525 - INFO - Initializing configuration...
+2025-07-19 07:58:06,526 - ERROR - Error loading config: Expecting value: line 2 column 23 (char 24)
+2025-07-19 07:58:06,526 - INFO - Configuration initialized successfully
+2025-07-19 07:58:06,526 - INFO - Testing database initialization...
+2025-07-19 07:58:06,529 - INFO - SQLite database initialized successfully
+2025-07-19 07:58:07,104 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:58:07,251 - INFO - Database initialization successful
+2025-07-19 07:58:07,251 - INFO - Initializing user manager...
+2025-07-19 07:58:07,251 - INFO - Using local database path: C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db
+2025-07-19 07:58:07,254 - INFO - Users table exists, checking schema...
+2025-07-19 07:58:07,255 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:58:07,255 - INFO - Found 3 existing users in database
+2025-07-19 07:58:07,255 - INFO - Checking and updating existing users...
+2025-07-19 07:58:07,256 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:58:07,256 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:58:07,256 - INFO - User manager initialized successfully
+2025-07-19 07:58:07,258 - INFO - Found 3 default users in database
+2025-07-19 07:58:13,852 - INFO - Attempting authentication for user: admin
+2025-07-19 07:58:13,873 - INFO - Authentication successful for user: admin
+2025-07-19 07:58:13,874 - INFO - Login successful for: admin
+2025-07-19 07:58:13,878 - INFO - Login successful for user: admin (Role: admin)
+2025-07-19 07:58:13,888 - INFO - SQLite database initialized successfully
+2025-07-19 07:58:14,111 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:58:14,190 - INFO - Users table exists, checking schema...
+2025-07-19 07:58:14,191 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:58:14,191 - INFO - Found 3 existing users in database
+2025-07-19 07:58:14,191 - INFO - Checking and updating existing users...
+2025-07-19 07:58:14,192 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:58:14,192 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:58:14,253 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-19 07:58:14,312 - INFO - Modern main window created and displayed successfully
+2025-07-19 07:58:14,312 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-19 07:58:14,313 - INFO - Enhanced features:
+2025-07-19 07:58:14,313 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-19 07:58:14,313 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-19 07:58:14,313 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-19 07:58:14,313 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-19 07:58:14,314 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-19 07:58:14,314 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-19 07:58:14,314 - INFO - Current user role: admin - Modern interface ready
+2025-07-19 07:58:14,710 - INFO - Server connection test started asynchronously
+2025-07-19 07:58:14,710 - INFO - Local connection test started asynchronously
+2025-07-19 07:58:14,715 - INFO - DatabaseWorker thread started
+2025-07-19 07:58:14,719 - INFO - Operation started: op_1_1752897494 - Testing database connection...
+2025-07-19 07:58:14,761 - INFO - Initial dashboard load started asynchronously
+2025-07-19 07:58:14,840 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:58:14,909 - INFO - Connection test server: Success
+2025-07-19 07:58:14,909 - INFO - Connection test server: Success - Server connection successful
+2025-07-19 07:58:14,910 - INFO - Operation completed: test_server
+2025-07-19 07:58:14,910 - INFO - Operation started: op_2_1752897494 - Testing database connection...
+2025-07-19 07:58:14,911 - INFO - Connection test local: Success
+2025-07-19 07:58:14,913 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:58:14,915 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:58:14,915 - INFO - Connection test local: Success - Local connection successful (4 tables)
+2025-07-19 07:58:14,915 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:58:14,915 - INFO - Operation completed: test_local
+2025-07-19 07:58:14,916 - INFO - Operation started: op_3_1752897494 - Calculating statistics...
+2025-07-19 07:58:14,916 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:58:14,917 - INFO - Operation completed: initial_dashboard_load
+2025-07-19 07:58:16,981 - INFO - Monitoring started successfully
+2025-07-19 07:58:19,469 - INFO - Latest tanker verification started asynchronously
+2025-07-19 07:58:19,470 - INFO - Operation started: op_4_1752897499 - Verifying tanker...
+2025-07-19 07:58:21,741 - INFO - Tanker verification completed: ALLOWED
+2025-07-19 07:58:21,741 - INFO - Verification completed: ALLOWED - Vehicle 50566 is not in ban records - Access granted
+2025-07-19 07:58:21,742 - INFO - Operation completed: verify_latest
+2025-07-19 07:58:26,827 - INFO - Ban table load started asynchronously
+2025-07-19 07:58:26,828 - INFO - Operation started: op_5_1752897506 - Loading ban records...
+2025-07-19 07:58:26,848 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:58:26,849 - INFO - Loaded 3 ban records
+2025-07-19 07:58:26,849 - INFO - Bans table updated with 3 records
+2025-07-19 07:58:26,849 - INFO - Operation completed: load_bans
+2025-07-19 07:58:28,230 - INFO - Ban table load started asynchronously
+2025-07-19 07:58:28,230 - INFO - Ban filters applied: {'start_date': '2024-07-19', 'end_date': '2025-07-19'}
+2025-07-19 07:58:28,230 - INFO - Operation started: op_6_1752897508 - Loading ban records...
+2025-07-19 07:58:28,241 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 07:58:28,241 - INFO - Loaded 3 ban records
+2025-07-19 07:58:28,241 - INFO - Bans table updated with 3 records
+2025-07-19 07:58:28,241 - INFO - Operation completed: load_bans
+2025-07-19 07:58:52,842 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 07:58:52,842 - INFO - Operation started: op_7_1752897532 - Verifying tanker...
+2025-07-19 07:58:53,100 - INFO - Tanker verification completed: ALLOWED_WITH_PERMISSION
+2025-07-19 07:58:54,303 - INFO - Playing warning sound for status: ALLOWED_WITH_PERMISSION
+2025-07-19 07:58:54,304 - INFO - Verification completed: ALLOWED_WITH_PERMISSION - PERMISSION REQUIRED: Repair Not Done
+2025-07-19 07:58:54,304 - INFO - Operation completed: verify_manual
+2025-07-19 07:59:01,140 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 07:59:01,140 - INFO - Stopping database worker thread...
+2025-07-19 07:59:01,140 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 07:59:01,141 - INFO - DatabaseWorker thread stopped
+2025-07-19 07:59:01,186 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 07:59:07,470 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:59:07,471 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:59:07,537 - INFO - Initializing configuration...
+2025-07-19 07:59:07,538 - ERROR - Error loading config: Expecting value: line 2 column 23 (char 24)
+2025-07-19 07:59:07,538 - INFO - Configuration initialized successfully
+2025-07-19 07:59:07,538 - INFO - Testing database initialization...
+2025-07-19 07:59:07,540 - INFO - SQLite database initialized successfully
+2025-07-19 07:59:08,486 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:59:08,581 - INFO - Database initialization successful
+2025-07-19 07:59:08,582 - INFO - Initializing user manager...
+2025-07-19 07:59:08,582 - INFO - Using local database path: C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db
+2025-07-19 07:59:08,583 - INFO - Users table exists, checking schema...
+2025-07-19 07:59:08,584 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:59:08,584 - INFO - Found 3 existing users in database
+2025-07-19 07:59:08,584 - INFO - Checking and updating existing users...
+2025-07-19 07:59:08,585 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:59:08,585 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:59:08,585 - INFO - User manager initialized successfully
+2025-07-19 07:59:08,587 - INFO - Found 3 default users in database
+2025-07-19 07:59:11,210 - INFO - Attempting authentication for user: admin
+2025-07-19 07:59:11,232 - INFO - Authentication successful for user: admin
+2025-07-19 07:59:11,232 - INFO - Login successful for: admin
+2025-07-19 07:59:11,246 - INFO - Login successful for user: admin (Role: admin)
+2025-07-19 07:59:11,253 - INFO - SQLite database initialized successfully
+2025-07-19 07:59:11,337 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:59:11,413 - INFO - Users table exists, checking schema...
+2025-07-19 07:59:11,413 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:59:11,413 - INFO - Found 3 existing users in database
+2025-07-19 07:59:11,413 - INFO - Checking and updating existing users...
+2025-07-19 07:59:11,413 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:59:11,413 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:59:11,452 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-19 07:59:11,508 - INFO - Modern main window created and displayed successfully
+2025-07-19 07:59:11,508 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-19 07:59:11,508 - INFO - Enhanced features:
+2025-07-19 07:59:11,508 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-19 07:59:11,508 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-19 07:59:11,508 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-19 07:59:11,508 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-19 07:59:11,509 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-19 07:59:11,509 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-19 07:59:11,509 - INFO - Current user role: admin - Modern interface ready
+2025-07-19 07:59:11,923 - INFO - Server connection test started asynchronously
+2025-07-19 07:59:11,924 - INFO - Local connection test started asynchronously
+2025-07-19 07:59:11,931 - INFO - DatabaseWorker thread started
+2025-07-19 07:59:11,932 - INFO - Operation started: op_1_1752897551 - Testing database connection...
+2025-07-19 07:59:11,960 - INFO - Initial dashboard load started asynchronously
+2025-07-19 07:59:12,084 - INFO - Server connected - 642 vehicles in database
+2025-07-19 07:59:12,137 - INFO - Connection test server: Success
+2025-07-19 07:59:12,137 - INFO - Connection test server: Success - Server connection successful
+2025-07-19 07:59:12,137 - INFO - Operation completed: test_server
+2025-07-19 07:59:12,138 - INFO - Operation started: op_2_1752897551 - Testing database connection...
+2025-07-19 07:59:12,138 - INFO - Connection test local: Success
+2025-07-19 07:59:12,141 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:59:12,143 - INFO - Connection test local: Success - Local connection successful (4 tables)
+2025-07-19 07:59:12,143 - INFO - Operation completed: test_local
+2025-07-19 07:59:12,143 - INFO - Operation started: op_3_1752897551 - Calculating statistics...
+2025-07-19 07:59:12,143 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:59:12,144 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:59:12,151 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:59:12,152 - INFO - Operation completed: initial_dashboard_load
+2025-07-19 07:59:17,349 - INFO - Monitoring started successfully
+2025-07-19 07:59:17,353 - INFO - Ban table load started asynchronously
+2025-07-19 07:59:17,354 - INFO - Operation started: op_4_1752897557 - Loading ban records...
+2025-07-19 07:59:17,394 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 07:59:17,394 - INFO - Loaded 3 ban records
+2025-07-19 07:59:17,396 - INFO - Bans table updated with 3 records
+2025-07-19 07:59:17,396 - INFO - Operation completed: load_bans
+2025-07-19 08:00:48,494 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 08:00:48,494 - INFO - Stopping database worker thread...
+2025-07-19 08:00:48,494 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 08:00:53,503 - INFO - DatabaseWorker thread stopped
+2025-07-19 08:00:53,506 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 08:00:53,515 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 08:00:53,516 - INFO - Stopping database worker thread...
+2025-07-19 08:00:53,516 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 08:00:53,516 - INFO - DatabaseWorker thread stopped
+2025-07-19 08:00:53,517 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 22:03:34,347 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 22:03:34,347 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 22:03:34,406 - INFO - Initializing configuration...
+2025-07-19 22:03:34,406 - ERROR - Error loading config: Expecting value: line 2 column 23 (char 24)
+2025-07-19 22:03:34,406 - INFO - Configuration initialized successfully
+2025-07-19 22:03:34,406 - INFO - Testing database initialization...
+2025-07-19 22:03:34,412 - INFO - SQLite database initialized successfully
+2025-07-19 22:03:34,854 - INFO - Server connected - 642 vehicles in database
+2025-07-19 22:03:34,952 - INFO - Database initialization successful
+2025-07-19 22:03:34,952 - INFO - Initializing user manager...
+2025-07-19 22:03:34,952 - INFO - Using local database path: C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db
+2025-07-19 22:03:34,954 - INFO - Users table exists, checking schema...
+2025-07-19 22:03:34,954 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 22:03:34,954 - INFO - Found 3 existing users in database
+2025-07-19 22:03:34,954 - INFO - Checking and updating existing users...
+2025-07-19 22:03:34,955 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 22:03:34,955 - INFO - User tables initialized successfully with schema migration
+2025-07-19 22:03:34,955 - INFO - User manager initialized successfully
+2025-07-19 22:03:34,956 - INFO - Found 3 default users in database
+2025-07-19 22:03:38,859 - INFO - Attempting authentication for user: admin
+2025-07-19 22:03:38,868 - INFO - Authentication successful for user: admin
+2025-07-19 22:03:38,868 - INFO - Login successful for: admin
+2025-07-19 22:03:38,884 - INFO - Login successful for user: admin (Role: admin)
+2025-07-19 22:03:38,898 - INFO - SQLite database initialized successfully
+2025-07-19 22:03:39,376 - INFO - Server connected - 642 vehicles in database
+2025-07-19 22:03:39,466 - INFO - Users table exists, checking schema...
+2025-07-19 22:03:39,466 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 22:03:39,467 - INFO - Found 3 existing users in database
+2025-07-19 22:03:39,467 - INFO - Checking and updating existing users...
+2025-07-19 22:03:39,467 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 22:03:39,468 - INFO - User tables initialized successfully with schema migration
+2025-07-19 22:03:39,577 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-19 22:03:39,697 - INFO - Modern main window created and displayed successfully
+2025-07-19 22:03:39,697 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-19 22:03:39,697 - INFO - Enhanced features:
+2025-07-19 22:03:39,697 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-19 22:03:39,698 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-19 22:03:39,698 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-19 22:03:39,698 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-19 22:03:39,698 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-19 22:03:39,698 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-19 22:03:39,698 - INFO - Current user role: admin - Modern interface ready
+2025-07-19 22:03:40,000 - INFO - Server connection test started asynchronously
+2025-07-19 22:03:40,001 - INFO - Local connection test started asynchronously
+2025-07-19 22:03:40,034 - INFO - DatabaseWorker thread started
+2025-07-19 22:03:40,034 - INFO - Operation started: op_1_1752948219 - Testing database connection...
+2025-07-19 22:03:40,088 - INFO - Initial dashboard load started asynchronously
+2025-07-19 22:03:40,165 - INFO - Server connected - 642 vehicles in database
+2025-07-19 22:03:40,216 - INFO - Connection test server: Success
+2025-07-19 22:03:40,217 - INFO - Connection test server: Success - Server connection successful
+2025-07-19 22:03:40,217 - INFO - Operation completed: test_server
+2025-07-19 22:03:40,217 - INFO - Operation started: op_2_1752948220 - Testing database connection...
+2025-07-19 22:03:40,218 - INFO - Connection test local: Success
+2025-07-19 22:03:40,221 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:03:40,222 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 22:03:40,223 - INFO - Connection test local: Success - Local connection successful (4 tables)
+2025-07-19 22:03:40,223 - INFO - Dashboard statistics calculated successfully
+2025-07-19 22:03:40,223 - INFO - Operation completed: test_local
+2025-07-19 22:03:40,223 - INFO - Operation started: op_3_1752948220 - Calculating statistics...
+2025-07-19 22:03:40,224 - INFO - Dashboard statistics updated successfully
+2025-07-19 22:03:40,224 - INFO - Operation completed: initial_dashboard_load
+2025-07-19 22:03:43,170 - INFO - Monitoring started successfully
+2025-07-19 22:03:45,070 - INFO - Dashboard refresh started asynchronously
+2025-07-19 22:03:45,071 - INFO - Operation started: op_4_1752948225 - Calculating statistics...
+2025-07-19 22:03:45,126 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:03:45,128 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 22:03:45,128 - INFO - Dashboard statistics calculated successfully
+2025-07-19 22:03:45,129 - INFO - Dashboard statistics updated successfully
+2025-07-19 22:03:45,129 - INFO - Operation completed: dashboard_refresh
+2025-07-19 22:03:47,778 - INFO - Dashboard refresh started asynchronously
+2025-07-19 22:03:47,779 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 22:03:47,779 - INFO - Operation started: op_5_1752948227 - Calculating statistics...
+2025-07-19 22:03:47,801 - INFO - Ban query executed with 2 parameters, returned 3 results
+2025-07-19 22:03:47,803 - INFO - Log query executed with 3 parameters, returned 15 results
+2025-07-19 22:03:47,803 - INFO - Dashboard statistics calculated successfully
+2025-07-19 22:03:47,805 - INFO - Dashboard statistics updated successfully
+2025-07-19 22:03:47,805 - INFO - Operation completed: dashboard_refresh
+2025-07-19 22:03:50,313 - INFO - Dashboard refresh started asynchronously
+2025-07-19 22:03:50,313 - INFO - Dashboard filter cleared
+2025-07-19 22:03:50,314 - INFO - Operation started: op_6_1752948230 - Calculating statistics...
+2025-07-19 22:03:50,327 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:03:50,329 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 22:03:50,330 - INFO - Dashboard statistics calculated successfully
+2025-07-19 22:03:50,332 - INFO - Dashboard statistics updated successfully
+2025-07-19 22:03:50,332 - INFO - Operation completed: dashboard_refresh
+2025-07-19 22:03:53,174 - INFO - Dashboard refresh started asynchronously
+2025-07-19 22:03:53,174 - INFO - Operation started: op_7_1752948233 - Calculating statistics...
+2025-07-19 22:03:53,184 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:03:53,185 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 22:03:53,185 - INFO - Dashboard statistics calculated successfully
+2025-07-19 22:03:53,186 - INFO - Dashboard statistics updated successfully
+2025-07-19 22:03:53,187 - INFO - Operation completed: dashboard_refresh
+2025-07-19 22:03:54,624 - INFO - Logs table load started asynchronously
+2025-07-19 22:03:54,625 - INFO - Operation started: op_8_1752948234 - Loading activity logs...
+2025-07-19 22:03:54,640 - INFO - Log query executed with 3 parameters, returned 64 results
+2025-07-19 22:03:54,641 - INFO - Loaded 64 log records
+2025-07-19 22:03:54,651 - INFO - Logs table updated with 64 records
+2025-07-19 22:03:54,651 - INFO - Operation completed: load_logs
+2025-07-19 22:04:26,594 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-19 22:04:26,594 - INFO - Operation started: op_9_1752948266 - Verifying tanker...
+2025-07-19 22:04:27,290 - INFO - Tanker verification completed: ALLOWED_WITH_PERMISSION
+2025-07-19 22:04:27,720 - INFO - Playing warning sound for status: ALLOWED_WITH_PERMISSION
+2025-07-19 22:04:27,720 - INFO - Verification completed: ALLOWED_WITH_PERMISSION - PERMISSION REQUIRED: Repair Not Done
+2025-07-19 22:04:27,720 - INFO - Operation completed: verify_manual
+2025-07-19 22:04:31,191 - INFO - Ban table load started asynchronously
+2025-07-19 22:04:31,193 - INFO - Operation started: op_10_1752948271 - Loading ban records...
+2025-07-19 22:04:31,209 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:04:31,209 - INFO - Loaded 3 ban records
+2025-07-19 22:04:31,211 - INFO - Bans table updated with 3 records
+2025-07-19 22:04:31,212 - INFO - Operation completed: load_bans
+2025-07-19 22:04:35,300 - INFO - Latest tanker verification started asynchronously
+2025-07-19 22:04:35,301 - INFO - Operation started: op_11_1752948275 - Verifying tanker...
+2025-07-19 22:04:51,301 - INFO - Tanker verification completed: ALLOWED
+2025-07-19 22:04:52,258 - INFO - Verification completed: ALLOWED - Vehicle 50566 is not in ban records - Access granted
+2025-07-19 22:04:52,258 - INFO - Operation completed: verify_latest
+2025-07-19 22:05:02,427 - INFO - Ban table load started asynchronously
+2025-07-19 22:05:02,428 - INFO - Operation started: op_12_1752948302 - Loading ban records...
+2025-07-19 22:05:02,435 - INFO - Ban query executed with 0 parameters, returned 3 results
+2025-07-19 22:05:02,435 - INFO - Loaded 3 ban records
+2025-07-19 22:05:02,436 - INFO - Bans table updated with 3 records
+2025-07-19 22:05:02,436 - INFO - Operation completed: load_bans
+2025-07-19 22:30:21,263 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 22:30:21,264 - INFO - Stopping database worker thread...
+2025-07-19 22:30:21,265 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 22:30:21,266 - INFO - DatabaseWorker thread stopped
+2025-07-19 22:30:21,701 - INFO - TDF System shutdown completed - User: admin

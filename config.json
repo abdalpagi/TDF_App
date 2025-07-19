@@ -1,6 +1,6 @@
 {
-    "server_db_path": "${SERVER_DB_PATH}",
-    "local_sqlite_path": "${LOCAL_SQLITE_PATH}",
+    "server_db_path": ${"C:\Users\abdalbagi.a\Desktop\APPPPNEW\TruckAutoId_copy.accdb"},
+    "local_sqlite_path": ${"C:\Users\abdalbagi.a\Desktop\CleanTDF\tdf_app.db"},
     "connection_timeout": 3,
     "cache_timeout": 5,
     "monitor_interval": 3,
