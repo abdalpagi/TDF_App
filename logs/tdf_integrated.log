@@ -1388,3 +1388,121 @@
 2025-07-19 06:48:55,046 - INFO - Stopping DatabaseWorker thread...
 2025-07-19 06:48:55,048 - INFO - DatabaseWorker thread stopped
 2025-07-19 06:48:55,469 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 07:13:03,522 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:13:03,522 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:13:03,549 - INFO - Initializing configuration...
+2025-07-19 07:13:03,550 - INFO - Configuration initialized successfully
+2025-07-19 07:13:03,550 - INFO - Testing database initialization...
+2025-07-19 07:13:03,552 - INFO - SQLite database initialized successfully
+2025-07-19 07:13:04,428 - INFO - Server connected - 641 vehicles in database
+2025-07-19 07:13:04,534 - INFO - Database initialization successful
+2025-07-19 07:13:04,535 - INFO - Initializing user manager...
+2025-07-19 07:13:04,535 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/APPPPNEW/tdf_app.db
+2025-07-19 07:13:04,538 - INFO - Users table exists, checking schema...
+2025-07-19 07:13:04,538 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:13:04,539 - INFO - Found 3 existing users in database
+2025-07-19 07:13:04,539 - INFO - Checking and updating existing users...
+2025-07-19 07:13:04,539 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:13:04,539 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:13:04,539 - INFO - User manager initialized successfully
+2025-07-19 07:13:04,541 - INFO - Found 3 default users in database
+2025-07-19 07:13:12,734 - INFO - Attempting authentication for user: admin
+2025-07-19 07:13:12,752 - INFO - Authentication successful for user: admin
+2025-07-19 07:13:12,752 - INFO - Login successful for: admin
+2025-07-19 07:13:12,877 - INFO - Login successful for user: admin (Role: admin)
+2025-07-19 07:13:12,888 - INFO - SQLite database initialized successfully
+2025-07-19 07:13:13,265 - INFO - Server connected - 641 vehicles in database
+2025-07-19 07:13:13,343 - INFO - Users table exists, checking schema...
+2025-07-19 07:13:13,343 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-19 07:13:13,344 - INFO - Found 3 existing users in database
+2025-07-19 07:13:13,344 - INFO - Checking and updating existing users...
+2025-07-19 07:13:13,344 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-19 07:13:13,344 - INFO - User tables initialized successfully with schema migration
+2025-07-19 07:13:13,406 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-19 07:13:13,489 - INFO - Modern main window created and displayed successfully
+2025-07-19 07:13:13,489 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-19 07:13:13,492 - INFO - Enhanced features:
+2025-07-19 07:13:13,493 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-19 07:13:13,493 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-19 07:13:13,493 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-19 07:13:13,493 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-19 07:13:13,493 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-19 07:13:13,493 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-19 07:13:13,493 - INFO - Current user role: admin - Modern interface ready
+2025-07-19 07:13:13,860 - INFO - Server connection test started asynchronously
+2025-07-19 07:13:13,861 - INFO - Local connection test started asynchronously
+2025-07-19 07:13:13,878 - INFO - DatabaseWorker thread started
+2025-07-19 07:13:13,879 - INFO - Operation started: op_1_1752894793 - Testing database connection...
+2025-07-19 07:13:13,917 - INFO - Initial dashboard load started asynchronously
+2025-07-19 07:13:14,007 - INFO - Server connected - 641 vehicles in database
+2025-07-19 07:13:14,072 - INFO - Connection test server: Success
+2025-07-19 07:13:14,074 - INFO - Connection test server: Success - Server connection successful
+2025-07-19 07:13:14,074 - INFO - Operation completed: test_server
+2025-07-19 07:13:14,074 - INFO - Operation started: op_2_1752894793 - Testing database connection...
+2025-07-19 07:13:14,076 - INFO - Connection test local: Success
+2025-07-19 07:13:14,080 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-19 07:13:14,080 - INFO - Operation completed: test_local
+2025-07-19 07:13:14,080 - INFO - Operation started: op_3_1752894793 - Calculating statistics...
+2025-07-19 07:13:14,172 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-19 07:13:14,179 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:13:14,179 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:14,179 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:14,179 - INFO - Operation completed: initial_dashboard_load
+2025-07-19 07:13:14,774 - INFO - Monitoring started successfully
+2025-07-19 07:13:19,377 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:13:19,378 - INFO - Operation started: op_4_1752894799 - Calculating statistics...
+2025-07-19 07:13:19,507 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-19 07:13:19,513 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-19 07:13:19,514 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:19,517 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:19,517 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:13:21,547 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:13:21,547 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 07:13:21,548 - INFO - Operation started: op_5_1752894801 - Calculating statistics...
+2025-07-19 07:13:21,571 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-19 07:13:21,574 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-19 07:13:21,574 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:21,575 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:21,575 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:13:23,039 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:13:23,039 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 07:13:23,040 - INFO - Operation started: op_6_1752894803 - Calculating statistics...
+2025-07-19 07:13:23,051 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-19 07:13:23,053 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-19 07:13:23,053 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:23,053 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:23,054 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:13:24,169 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:13:24,169 - INFO - Dashboard filter applied: {'start_date': '2025-06-19', 'end_date': '2025-07-19'}
+2025-07-19 07:13:24,169 - INFO - Operation started: op_7_1752894804 - Calculating statistics...
+2025-07-19 07:13:24,174 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-19 07:13:24,179 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-19 07:13:24,180 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:24,180 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:24,180 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:13:25,459 - INFO - Dashboard refresh started asynchronously
+2025-07-19 07:13:25,459 - INFO - Operation started: op_8_1752894805 - Calculating statistics...
+2025-07-19 07:13:25,472 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-19 07:13:25,474 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-19 07:13:25,474 - INFO - Dashboard statistics calculated successfully
+2025-07-19 07:13:25,475 - INFO - Dashboard statistics updated successfully
+2025-07-19 07:13:25,475 - INFO - Operation completed: dashboard_refresh
+2025-07-19 07:13:27,447 - INFO - TDF System shutdown initiated - User: admin
+2025-07-19 07:13:27,448 - INFO - Stopping database worker thread...
+2025-07-19 07:13:27,448 - INFO - Stopping DatabaseWorker thread...
+2025-07-19 07:13:27,449 - INFO - DatabaseWorker thread stopped
+2025-07-19 07:13:27,449 - INFO - TDF System shutdown completed - User: admin
+2025-07-19 07:26:21,169 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:26:21,170 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:26:21,323 - INFO - Initializing configuration...
+2025-07-19 07:26:21,328 - INFO - Configuration initialized successfully
+2025-07-19 07:26:21,328 - INFO - Testing database initialization...
+2025-07-19 07:26:21,329 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:26:21,329 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:31:47,695 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-19 07:31:47,696 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-19 07:31:47,719 - INFO - Initializing configuration...
+2025-07-19 07:31:47,720 - INFO - Configuration initialized successfully
+2025-07-19 07:31:47,720 - INFO - Testing database initialization...
+2025-07-19 07:31:47,720 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
+2025-07-19 07:31:47,720 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''

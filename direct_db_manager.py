@@ -4,6 +4,7 @@ Features: Modern Professional UI, Fixed filter functionality, Role-based permiss
 Updated: Modern typography, enhanced visual design, improved accessibility and readability
 """
 #coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
+#coderabbitai please prioritize visual clarity, modern layout, and practical usability improvements.
 
 
 import sys
