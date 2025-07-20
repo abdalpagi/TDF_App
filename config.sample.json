@@ -1,0 +1,11 @@
+{
+    "server_db_path": "/path/to/server/database.mdb",
+    "local_sqlite_path": "/path/to/local/database.db",
+    "connection_timeout": 3,
+    "cache_timeout": 5,
+    "monitor_interval": 3,
+    "auto_refresh_interval": 60,
+    "default_user": "admin",
+    "sound_enabled": true,
+    "warning_sound_duration": 3.0
+}

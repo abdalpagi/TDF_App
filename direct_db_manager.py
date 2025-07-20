@@ -3,6 +3,9 @@ TDF System - Enhanced Version with Modern UI, Fixed Filters and Role-Based Acces
 Features: Modern Professional UI, Fixed filter functionality, Role-based permissions, Database path configuration, User account management
 Updated: Modern typography, enhanced visual design, improved accessibility and readability
 """
+#coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
+#coderabbitai please prioritize visual clarity, modern layout, and practical usability improvements.
+
 
 import sys
 import os
@@ -12,7 +15,11 @@ import threading
 import sqlite3
 import json
 import hashlib
+from PyQt5.QtCore import QThread, pyqtSignal
 import resources
+import queue
+import weakref
+from PyQt5.QtCore import QMutex, QWaitCondition, QPropertyAnimation, QEasingCurve
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 from typing import Optional, Dict, Any
@@ -39,7 +46,7 @@ try:
     AUDIO_AVAILABLE = True
 except ImportError as e:
     AUDIO_AVAILABLE = False
-
+# Test pull request to trigger CodeRabbit review
 # Configure logging
 os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
@@ -845,8 +852,13 @@ class DatabaseManager:
         self.test_server_connection()
 
     def test_server_connection(self):
-        """Test server connection with timeout"""
+        """Test server connection - ENSURE THIS METHOD EXISTS"""
         try:
+            if not PYODBC_AVAILABLE:
+                self.server_available = False
+                logger.warning("pyodbc not available for server connection")
+                return
+
             with self._connection_lock:
                 with self.get_server_connection() as conn:
                     cursor = conn.cursor()
@@ -857,7 +869,6 @@ class DatabaseManager:
         except Exception as e:
             self.server_available = False
             logger.warning(f"Server connection failed: {e}")
-
     def init_sqlite(self):
         """Initialize SQLite database with schema migration support"""
         try:
@@ -2479,7 +2490,386 @@ class UserManagementDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Operation failed: {str(e)}")
+# TODO: This part is causing UI freezing. Please suggest a refactor using QThread or async technique to prevent Not Responding.
+class DatabaseWorker(QThread):
+    """CORRECTED Database Worker Thread for async database operations"""
 
+    # Signal definitions
+    operation_started = pyqtSignal(str, str)  # operation_id, description
+    operation_progress = pyqtSignal(str, int, str)  # operation_id, percentage, message
+    operation_completed = pyqtSignal(str, object)  # operation_id, result
+    operation_error = pyqtSignal(str, str)  # operation_id, error_message
+
+    # Specific data signals
+    bans_loaded = pyqtSignal(list)
+    logs_loaded = pyqtSignal(list)
+    users_loaded = pyqtSignal(list)
+    statistics_loaded = pyqtSignal(dict)
+    verification_completed = pyqtSignal(str, str, dict)  # status, reason, details
+    connection_tested = pyqtSignal(str, bool, str)  # connection_type, success, message
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.operations_queue = queue.Queue()
+        self.current_operation = None
+        self.is_running = True
+        self.mutex = QMutex()
+        self.wait_condition = QWaitCondition()
+
+    def add_operation(self, operation_type, operation_id, db_instance, *args, **kwargs):
+        """Add operation to queue for async execution"""
+        operation = {
+            'type': operation_type,
+            'id': operation_id,
+            'db': db_instance,
+            'args': args,
+            'kwargs': kwargs,
+            'timestamp': time.time()
+        }
+        self.operations_queue.put(operation)
+
+        # Wake up thread if sleeping
+        self.mutex.lock()
+        self.wait_condition.wakeOne()
+        self.mutex.unlock()
+
+        if not self.isRunning():
+            self.start()
+
+    def run(self):
+        """Main thread execution loop"""
+        logger.info("DatabaseWorker thread started")
+
+        while self.is_running:
+            try:
+                # Get operation from queue with timeout
+                try:
+                    operation = self.operations_queue.get(timeout=1.0)
+                except queue.Empty:
+                    # No operations, wait for signal
+                    self.mutex.lock()
+                    self.wait_condition.wait(self.mutex, 5000)  # 5 second timeout
+                    self.mutex.unlock()
+                    continue
+
+                self.current_operation = operation
+                self._execute_operation(operation)
+                self.current_operation = None
+
+            except Exception as e:
+                logger.error(f"DatabaseWorker thread error: {e}")
+                if self.current_operation:
+                    self.operation_error.emit(self.current_operation['id'], str(e))
+                    self.current_operation = None
+
+    def _execute_operation(self, operation):
+        """Execute individual database operation"""
+        try:
+            op_type = operation['type']
+            op_id = operation['id']
+            db = operation['db']
+            args = operation['args']
+            kwargs = operation['kwargs']
+
+            # Emit operation started signal
+            description = self._get_operation_description(op_type)
+            self.operation_started.emit(op_id, description)
+
+            # Execute operation based on type
+            result = None
+
+            if op_type == 'load_bans':
+                result = self._load_bans(db, *args, **kwargs)
+                self.bans_loaded.emit(result)
+
+            elif op_type == 'load_logs':
+                result = self._load_logs(db, *args, **kwargs)
+                self.logs_loaded.emit(result)
+
+            elif op_type == 'load_users':
+                result = self._load_users(db, *args, **kwargs)
+                self.users_loaded.emit(result)
+
+            elif op_type == 'load_statistics':
+                result = self._load_statistics(db, *args, **kwargs)
+                self.statistics_loaded.emit(result)
+
+            elif op_type == 'verify_tanker':
+                status, reason, details = self._verify_tanker(db, *args, **kwargs)
+                result = (status, reason, details)
+                self.verification_completed.emit(status, reason, details)
+
+            elif op_type == 'test_connection':
+                success, message = self._test_connection(db, *args, **kwargs)
+                result = (success, message)
+                connection_type = args[0] if args else 'unknown'
+                self.connection_tested.emit(connection_type, success, message)
+
+            else:
+                raise ValueError(f"Unknown operation type: {op_type}")
+
+            # Emit completion signal
+            self.operation_completed.emit(op_id, result)
+
+        except Exception as e:
+            logger.error(f"Error executing operation {op_type}: {e}")
+            self.operation_error.emit(op_id, str(e))
+
+    def _get_operation_description(self, op_type):
+        """Get human-readable description for operation type"""
+        descriptions = {
+            'load_bans': 'Loading ban records...',
+            'load_logs': 'Loading activity logs...',
+            'load_users': 'Loading user accounts...',
+            'load_statistics': 'Calculating statistics...',
+            'verify_tanker': 'Verifying tanker...',
+            'test_connection': 'Testing database connection...'
+        }
+        return descriptions.get(op_type, f'Executing {op_type}...')
+
+    # ===== CORRECTED OPERATION IMPLEMENTATIONS =====
+
+    def _load_bans(self, db, filters=None):
+        """Load ban records - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Loading ban records...")
+
+        try:
+            # Use existing DatabaseManager method
+            result = db.get_all_bans(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Ban records loaded")
+            logger.info(f"Loaded {len(result)} ban records")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading bans: {e}")
+            raise
+
+    def _load_logs(self, db, limit=50, filters=None):
+        """Load activity logs - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Loading activity logs...")
+
+        try:
+            # Use existing DatabaseManager method
+            result = db.get_recent_logs(limit, filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Activity logs loaded")
+            logger.info(f"Loaded {len(result)} log records")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading logs: {e}")
+            raise
+
+    def _load_users(self, user_manager):
+        """Load user accounts - CALLS EXISTING UserManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 20, "Loading user accounts...")
+
+        try:
+            # Use existing UserManager method
+            result = user_manager.get_all_users()
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "User accounts loaded")
+            logger.info(f"Loaded {len(result)} user accounts")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading users: {e}")
+            raise
+
+    def _load_statistics(self, db, filters=None):
+        """Load dashboard statistics - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Calculating statistics...")
+
+        try:
+            self.operation_progress.emit(self.current_operation['id'], 30, "Loading ban statistics...")
+            ban_stats = db.get_ban_statistics(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 60, "Loading verification statistics...")
+            verify_stats = db.get_verification_statistics(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 80, "Loading recent data...")
+            recent_bans = db.get_all_bans(filters)[:10] if hasattr(db, 'get_all_bans') else []
+            recent_logs = db.get_recent_logs(15, filters) if hasattr(db, 'get_recent_logs') else []
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Statistics complete")
+
+            result = {
+                'ban_stats': ban_stats,
+                'verify_stats': verify_stats,
+                'recent_bans': recent_bans,
+                'recent_logs': recent_logs
+            }
+
+            logger.info("Dashboard statistics calculated successfully")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading statistics: {e}")
+            raise
+
+    def _verify_tanker(self, db, tanker_number, operator):
+        """Verify tanker - CALLS EXISTING DatabaseManager methods"""
+        tanker_display = tanker_number or 'latest tanker'
+        self.operation_progress.emit(self.current_operation['id'], 20, f"Verifying {tanker_display}...")
+
+        try:
+            if tanker_number:
+                # Use existing DatabaseManager method
+                status, reason, details = db.verify_specific_tanker(tanker_number, operator)
+            else:
+                # Use existing DatabaseManager method
+                status, reason, details = db.simple_tanker_verification(operator)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Verification complete")
+
+            logger.info(f"Tanker verification completed: {status}")
+            return status, reason, details
+
+        except Exception as e:
+            logger.error(f"Error verifying tanker: {e}")
+            raise
+
+    def _test_connection(self, db, connection_type):
+        """Test database connection - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 30, f"Testing {connection_type} connection...")
+
+        try:
+            if connection_type == 'server':
+                # Use existing DatabaseManager method
+                db.test_server_connection()  # This is the CORRECT method name
+                success = db.server_available
+                message = "Server connection successful" if success else "Server connection failed"
+
+            elif connection_type == 'local':
+                # Test local SQLite connection directly
+                try:
+                    with sqlite3.connect(db.sqlite_db, timeout=10) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                        tables = cursor.fetchall()
+                    success = True
+                    message = f"Local connection successful ({len(tables)} tables)"
+                except Exception as e:
+                    success = False
+                    message = f"Local connection failed: {str(e)}"
+
+            else:
+                raise ValueError(f"Unknown connection type: {connection_type}")
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Connection test complete")
+
+            logger.info(f"Connection test {connection_type}: {'Success' if success else 'Failed'}")
+            return success, message
+
+        except Exception as e:
+            logger.error(f"Error testing {connection_type} connection: {e}")
+            return False, str(e)
+
+    def stop_thread(self):
+        """Stop the thread gracefully"""
+        logger.info("Stopping DatabaseWorker thread...")
+        self.is_running = False
+        self.mutex.lock()
+        self.wait_condition.wakeAll()
+        self.mutex.unlock()
+
+        if self.isRunning():
+            self.wait(5000)  # Wait up to 5 seconds for thread to finish
+
+        logger.info("DatabaseWorker thread stopped")
+
+class LoadingOverlay(QWidget):
+    """Loading overlay that covers the entire widget"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("""
+            LoadingOverlay {
+                background-color: rgba(255, 255, 255, 0.9);
+                border-radius: 8px;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+
+        # Spinner
+        self.spinner_label = QLabel("⏳")
+        self.spinner_label.setAlignment(Qt.AlignCenter)
+        self.spinner_label.setStyleSheet("""
+            QLabel {
+                color: #3B82F6;
+                font-size: 32px;
+                margin-bottom: 16px;
+            }
+        """)
+        layout.addWidget(self.spinner_label)
+
+        # Message
+        self.message_label = QLabel("Loading...")
+        self.message_label.setAlignment(Qt.AlignCenter)
+        self.message_label.setStyleSheet("""
+            QLabel {
+                color: #6B7280;
+                font-size: 16px;
+                font-weight: 500;
+                margin-bottom: 16px;
+            }
+        """)
+        layout.addWidget(self.message_label)
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setFixedWidth(200)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                border-radius: 3px;
+                background-color: #E5E7EB;
+            }
+            QProgressBar::chunk {
+                background-color: #3B82F6;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.progress_bar)
+
+        # Animation timer for spinner
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_spinner)
+        self.spinner_chars = ["⏳", "⌛", "⏳", "⌛"]
+        self.spinner_index = 0
+
+        self.hide()
+
+    def show_loading(self, message="Loading..."):
+        """Show loading overlay"""
+        self.message_label.setText(message)
+        self.progress_bar.setValue(0)
+        self.timer.start(500)  # Update every 500ms
+        self.show()
+        self.raise_()
+
+    def hide_loading(self):
+        """Hide loading overlay"""
+        self.timer.stop()
+        self.hide()
+
+    def update_progress(self, percentage, message=None):
+        """Update loading progress"""
+        self.progress_bar.setValue(percentage)
+        if message:
+            self.message_label.setText(message)
+
+    def update_spinner(self):
+        """Update spinner animation"""
+        self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
+        self.spinner_label.setText(self.spinner_chars[self.spinner_index])
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
 
@@ -2487,6 +2877,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.user_info = user_info
         self.config = config_manager
+        self.db_worker = DatabaseWorker()
+        self.setup_database_signals()
+        self.loading_overlays = {}
+        self.active_operations = {}
+        self.operation_counter = 0
         self.last_tanker = None
         self.auto_switch_enabled = False
         self.notification_enabled = True
@@ -2518,11 +2913,11 @@ class MainWindow(QMainWindow):
         self.apply_modern_styles()
 
         # Use single shot timer to avoid blocking
-        QTimer.singleShot(500, self.initial_dashboard_load)
+        QTimer.singleShot(500, self.initial_dashboard_load_async)
         QTimer.singleShot(1000, self.start_monitoring)
 
         logger.info(f"Modern UI main window initialized for user: {user_info['username']} with role: {user_info['role']}")
-
+        self.setup_loading_overlays()
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -2679,6 +3074,436 @@ class MainWindow(QMainWindow):
         user_layout.addWidget(user_role)
 
         sidebar_layout.addWidget(user_container)
+
+    def setup_database_signals(self):
+        """Setup database worker signals"""
+        self.db_worker.operation_started.connect(self.on_operation_started)
+        self.db_worker.operation_progress.connect(self.on_operation_progress)
+        self.db_worker.operation_completed.connect(self.on_operation_completed)
+        self.db_worker.operation_error.connect(self.on_operation_error)
+
+        # Specific data signals
+        self.db_worker.bans_loaded.connect(self.on_bans_loaded)
+        self.db_worker.logs_loaded.connect(self.on_logs_loaded)
+        self.db_worker.users_loaded.connect(self.on_users_loaded)
+        self.db_worker.statistics_loaded.connect(self.on_statistics_loaded)
+        self.db_worker.verification_completed.connect(self.on_verification_completed)
+        self.db_worker.connection_tested.connect(self.on_connection_tested)
+
+    def setup_loading_overlays(self):
+        """Setup loading overlays for each page"""
+        if hasattr(self, 'dashboard_page'):
+            self.loading_overlays['dashboard'] = LoadingOverlay(self.dashboard_page)
+
+        if hasattr(self, 'bans_page'):
+            self.loading_overlays['bans'] = LoadingOverlay(self.bans_page)
+
+        if hasattr(self, 'logs_page'):
+            self.loading_overlays['logs'] = LoadingOverlay(self.logs_page)
+
+        # Position overlays
+        for page_name, overlay in self.loading_overlays.items():
+            if page_name == 'dashboard' and hasattr(self, 'dashboard_page'):
+                self._setup_overlay_resize(self.dashboard_page, overlay)
+            elif page_name == 'bans' and hasattr(self, 'bans_page'):
+                self._setup_overlay_resize(self.bans_page, overlay)
+            elif page_name == 'logs' and hasattr(self, 'logs_page'):
+                self._setup_overlay_resize(self.logs_page, overlay)
+
+    def _setup_overlay_resize(self, page_widget, overlay):
+        """Setup overlay resizing for a page"""
+
+        def resize_overlay():
+            overlay.setGeometry(page_widget.rect())
+
+        original_resize = page_widget.resizeEvent
+
+        def new_resize_event(event):
+            if original_resize:
+                original_resize(event)
+            else:
+                QWidget.resizeEvent(page_widget, event)
+            resize_overlay()
+
+        page_widget.resizeEvent = new_resize_event
+        resize_overlay()  # Initial positioning
+
+    def generate_operation_id(self):
+        """Generate unique operation ID"""
+        self.operation_counter += 1
+        return f"op_{self.operation_counter}_{int(time.time())}"
+
+    def initial_dashboard_load_async(self):
+        """Load initial dashboard data asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'initial_dashboard_load'
+
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].show_loading("Loading initial dashboard data...")
+
+            self.db_worker.add_operation('load_statistics', operation_id, self.db, self.current_dashboard_filters)
+
+            logger.info("Initial dashboard load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error starting initial dashboard load: {e}")
+            self.status_bar.showMessage(f"Dashboard load error: {e}")
+
+    def refresh_dashboard_async(self):
+        """Refresh dashboard asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'dashboard_refresh'
+
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].show_loading("Refreshing dashboard...")
+
+            filters = self.current_dashboard_filters if self.dashboard_filters_applied else None
+            self.db_worker.add_operation('load_statistics', operation_id, self.db, filters)
+
+            logger.info("Dashboard refresh started asynchronously")
+        except Exception as e:
+            logger.error(f"Error refreshing dashboard: {e}")
+            self.status_bar.showMessage(f"Dashboard refresh error: {e}")
+
+    def load_bans_table_async(self):
+        """Load bans table asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'load_bans'
+
+            if 'bans' in self.loading_overlays:
+                self.loading_overlays['bans'].show_loading("Loading ban records...")
+
+            if hasattr(self, 'bans_table'):
+                self.bans_table.setEnabled(False)
+
+            filters = self.current_ban_filters if self.ban_filters_applied else None
+            self.db_worker.add_operation('load_bans', operation_id, self.db, filters)
+
+            logger.info("Ban table load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error loading bans table: {e}")
+            self.status_bar.showMessage(f"Bans table load error: {e}")
+
+    def load_logs_table_async(self, filters=None):
+        """Load logs table asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'load_logs'
+
+            if 'logs' in self.loading_overlays:
+                self.loading_overlays['logs'].show_loading("Loading activity logs...")
+
+            if hasattr(self, 'logs_table'):
+                self.logs_table.setEnabled(False)
+
+            if filters is None:
+                filters = self.get_current_log_filters()
+
+            self.db_worker.add_operation('load_logs', operation_id, self.db, 100, filters)
+
+            logger.info("Logs table load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error loading logs table: {e}")
+            self.status_bar.showMessage(f"Logs table load error: {e}")
+
+    def verify_latest_tanker_async(self):
+        """Verify latest tanker asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'verify_latest'
+
+            self.status_bar.showMessage("Verifying latest tanker...")
+
+            self.db_worker.add_operation('verify_tanker', operation_id, self.db, None, self.user_info['username'])
+
+            logger.info("Latest tanker verification started asynchronously")
+        except Exception as e:
+            logger.error(f"Error verifying latest tanker: {e}")
+            self.status_bar.showMessage(f"Verification error: {e}")
+
+    def verify_manual_tanker_async(self):
+        """Verify manually entered tanker asynchronously"""
+        try:
+            if not hasattr(self, 'manual_tanker_input'):
+                return
+
+            tanker_number = self.manual_tanker_input.text().strip().upper()
+            if not tanker_number:
+                QMessageBox.warning(self, "Input Required", "Please enter a tanker number")
+                return
+
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'verify_manual'
+
+            self.status_bar.showMessage(f"Verifying tanker: {tanker_number}")
+
+            self.db_worker.add_operation('verify_tanker', operation_id, self.db, tanker_number,
+                                         self.user_info['username'])
+
+            logger.info(f"Manual tanker verification started asynchronously: {tanker_number}")
+        except Exception as e:
+            logger.error(f"Error verifying manual tanker: {e}")
+            self.status_bar.showMessage(f"Manual verification error: {e}")
+
+    def test_server_connection_async(self):
+        """Test server connection asynchronously - CORRECTED"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'test_server'
+
+            if hasattr(self, 'server_status_label'):
+                self.server_status_label.setText("Server Status: Testing...")
+                self.server_status_label.setStyleSheet("color: #6B7280;")
+
+            self.status_bar.showMessage("Testing server connection...")
+
+            # CORRECTED: Pass 'server' as argument, not call async method on db
+            self.db_worker.add_operation('test_connection', operation_id, self.db, 'server')
+
+            logger.info("Server connection test started asynchronously")
+        except Exception as e:
+            logger.error(f"Error testing server connection: {e}")
+            if hasattr(self, 'server_status_label'):
+                self.server_status_label.setText(f"Server Status: ❌ Error: {str(e)[:30]}")
+
+    def test_local_connection_async(self):
+        """Test local connection asynchronously - CORRECTED"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'test_local'
+
+            if hasattr(self, 'local_status_label'):
+                self.local_status_label.setText("Local Status: Testing...")
+                self.local_status_label.setStyleSheet("color: #6B7280;")
+
+            self.status_bar.showMessage("Testing local connection...")
+
+            # CORRECTED: Pass 'local' as argument, not call async method on db
+            self.db_worker.add_operation('test_connection', operation_id, self.db, 'local')
+
+            logger.info("Local connection test started asynchronously")
+        except Exception as e:
+            logger.error(f"Error testing local connection: {e}")
+            if hasattr(self, 'local_status_label'):
+                self.local_status_label.setText(f"Local Status: ❌ Error: {str(e)[:30]}")
+    def on_operation_started(self, operation_id, description):
+        """Handle operation started signal"""
+        logger.info(f"Operation started: {operation_id} - {description}")
+        self.status_bar.showMessage(description)
+
+    def on_operation_progress(self, operation_id, percentage, message):
+        """Handle operation progress signal"""
+        operation_type = self.active_operations.get(operation_id)
+        if operation_type:
+            if operation_type in ['dashboard_refresh', 'initial_dashboard_load']:
+                if 'dashboard' in self.loading_overlays:
+                    self.loading_overlays['dashboard'].update_progress(percentage, message)
+            elif operation_type == 'load_bans':
+                if 'bans' in self.loading_overlays:
+                    self.loading_overlays['bans'].update_progress(percentage, message)
+            elif operation_type == 'load_logs':
+                if 'logs' in self.loading_overlays:
+                    self.loading_overlays['logs'].update_progress(percentage, message)
+
+        if percentage < 100:
+            self.status_bar.showMessage(f"{message} ({percentage}%)")
+
+    def on_operation_completed(self, operation_id, result):
+        """Handle operation completed signal"""
+        operation_type = self.active_operations.pop(operation_id, None)
+        if operation_type:
+            logger.info(f"Operation completed: {operation_type}")
+            self.status_bar.showMessage(f"{operation_type.replace('_', ' ').title()} completed successfully")
+
+    def on_operation_error(self, operation_id, error_message):
+        """Handle operation error signal"""
+        operation_type = self.active_operations.pop(operation_id, None)
+
+        logger.error(f"Operation error: {operation_type} - {error_message}")
+
+        # Hide all loading overlays
+        for overlay in self.loading_overlays.values():
+            overlay.hide_loading()
+
+        # Re-enable tables
+        if hasattr(self, 'bans_table'):
+            self.bans_table.setEnabled(True)
+        if hasattr(self, 'logs_table'):
+            self.logs_table.setEnabled(True)
+
+        # Show error message
+        self.status_bar.showMessage(f"Error: {error_message}")
+
+        error_title = f"Error in {operation_type.replace('_', ' ').title()}" if operation_type else "Operation Error"
+        QMessageBox.critical(self, error_title, f"Operation failed:\n\n{error_message}")
+
+    def on_bans_loaded(self, bans_data):
+        """Handle bans loaded signal"""
+        try:
+            if 'bans' in self.loading_overlays:
+                self.loading_overlays['bans'].hide_loading()
+
+            if hasattr(self, 'bans_table'):
+                self.bans_table.setEnabled(True)
+
+            # Use your existing populate method or add this:
+            self.populate_bans_table_from_data(bans_data)
+
+            logger.info(f"Bans table updated with {len(bans_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling bans loaded: {e}")
+
+    def on_logs_loaded(self, logs_data):
+        """Handle logs loaded signal"""
+        try:
+            if 'logs' in self.loading_overlays:
+                self.loading_overlays['logs'].hide_loading()
+
+            if hasattr(self, 'logs_table'):
+                self.logs_table.setEnabled(True)
+
+            # Use your existing populate method
+            self.populate_logs_table_from_data(logs_data)
+
+            logger.info(f"Logs table updated with {len(logs_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling logs loaded: {e}")
+
+    def on_users_loaded(self, users_data):
+        """Handle users loaded signal"""
+        try:
+            if hasattr(self, 'users_table'):
+                self.users_table.setEnabled(True)
+
+            # Use your existing load_users_table logic here
+            if hasattr(self, 'load_users_table'):
+                # Call your existing method with the data
+                pass
+
+            logger.info(f"Users table updated with {len(users_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling users loaded: {e}")
+
+    def on_statistics_loaded(self, stats_data):
+        """Handle statistics loaded signal"""
+        try:
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].hide_loading()
+
+            # Use your existing dashboard update methods
+            self.update_dashboard_with_statistics(stats_data)
+
+            logger.info("Dashboard statistics updated successfully")
+
+        except Exception as e:
+            logger.error(f"Error handling statistics loaded: {e}")
+
+    def on_verification_completed(self, status, reason, details):
+        """Handle verification completed signal"""
+        try:
+            operation_type = None
+            for op_id, op_type in self.active_operations.items():
+                if op_type in ['verify_latest', 'verify_manual']:
+                    operation_type = op_type
+                    break
+
+            if operation_type == 'verify_latest':
+                tanker_number = details.get("tanker_number", "UNKNOWN")
+                # Use your existing update method
+                if hasattr(self, 'update_auto_verification_display'):
+                    self.update_auto_verification_display(tanker_number, status, reason, details)
+                self.status_bar.showMessage(f"Latest tanker verified: {tanker_number}")
+            elif operation_type == 'verify_manual':
+                tanker_number = details.get("tanker_number", "UNKNOWN")
+                # Use your existing update method
+                if hasattr(self, 'update_manual_verification_display'):
+                    self.update_manual_verification_display(tanker_number, status, reason, details)
+                self.status_bar.showMessage(f"Manual verification completed: {tanker_number}")
+
+            # Play warning sound if needed
+            if details.get("play_sound", False) and hasattr(self, 'play_warning_sound_for_status'):
+                self.play_warning_sound_for_status(status)
+
+            logger.info(f"Verification completed: {status} - {reason}")
+
+        except Exception as e:
+            logger.error(f"Error handling verification completed: {e}")
+
+    def on_connection_tested(self, connection_type, success, message):
+        """Handle connection tested signal"""
+        try:
+            if connection_type == 'server':
+                if hasattr(self, 'server_status_label'):
+                    if success:
+                        self.server_status_label.setText(f"Server Status: ✅ {message}")
+                        self.server_status_label.setStyleSheet("color: #059669; font-weight: 600;")
+                    else:
+                        self.server_status_label.setText(f"Server Status: ❌ {message}")
+                        self.server_status_label.setStyleSheet("color: #DC2626; font-weight: 600;")
+
+            elif connection_type == 'local':
+                if hasattr(self, 'local_status_label'):
+                    if success:
+                        self.local_status_label.setText(f"Local Status: ✅ {message}")
+                        self.local_status_label.setStyleSheet("color: #059669; font-weight: 600;")
+                    else:
+                        self.local_status_label.setText(f"Local Status: ❌ {message}")
+                        self.local_status_label.setStyleSheet("color: #DC2626; font-weight: 600;")
+
+            status_msg = f"{connection_type.title()} connection: {'Success' if success else 'Failed'}"
+            self.status_bar.showMessage(status_msg)
+
+            logger.info(f"Connection test {connection_type}: {'Success' if success else 'Failed'} - {message}")
+
+        except Exception as e:
+            logger.error(f"Error handling connection tested: {e}")
+
+    def get_current_log_filters(self):
+        """Get current log filters"""
+        filters = {}
+        if hasattr(self, 'log_start_date') and hasattr(self, 'log_end_date'):
+            filters['start_date'] = self.log_start_date.date().toString("yyyy-MM-dd")
+            filters['end_date'] = self.log_end_date.date().toString("yyyy-MM-dd")
+        return filters
+
+    def populate_bans_table_from_data(self, bans_data):
+        """Populate bans table from loaded data - customize this for your table structure"""
+        if hasattr(self, 'bans_table'):
+            # Clear existing data
+            self.bans_table.setRowCount(0)
+
+            # Populate with new data (adapt this to your existing populate logic)
+            for row, ban in enumerate(bans_data):
+                self.bans_table.insertRow(row)
+
+                for col in range(min(8, len(ban))):
+                    value = ban[col] if col < len(ban) else ""
+                    item = QTableWidgetItem(str(value) if value else "")
+                    self.bans_table.setItem(row, col, item)
+
+    def populate_logs_table_from_data(self, logs_data):
+        """Populate logs table from loaded data - customize this for your table structure"""
+        if hasattr(self, 'logs_table'):
+            self.logs_table.setRowCount(0)
+
+            for row, log in enumerate(logs_data):
+                self.logs_table.insertRow(row)
+
+                for col, value in enumerate(log):
+                    item = QTableWidgetItem(str(value) if value else "")
+                    self.logs_table.setItem(row, col, item)
+
+    def update_dashboard_with_statistics(self, stats_data):
+        """Update dashboard with statistics data - use your existing logic"""
+        # Use your existing dashboard update methods here
+        # This is where you'd call your existing refresh_dashboard logic
+        # but with the pre-loaded stats_data instead of loading it again
+        pass
 
     def create_modern_content_area(self):
         self.content_area = QFrame()
@@ -4556,75 +5381,8 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing dashboard filter: {e}")
 
     def refresh_dashboard(self):
-        """Refresh dashboard with proper filter handling"""
-        try:
-            # Clear existing stats cards
-            while self.ban_stats_container.count():
-                child = self.ban_stats_container.takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-
-            while self.verify_stats_container.count():
-                child = self.verify_stats_container.takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-
-            filters = self.current_dashboard_filters if self.dashboard_filters_applied else None
-
-            # Get ban statistics
-            ban_stats = self.db.get_ban_statistics(filters)
-
-            # Create modern ban statistics cards
-            ban_stats_data = [
-                ("Total Bans", ban_stats['total_bans'], ModernUITheme.ERROR),
-                ("Active Bans", ban_stats['active_bans'], "#DC2626"),
-                ("Permanent", ban_stats['permanent'], "#B91C1C"),
-                ("Temporary", ban_stats['temporary'], ModernUITheme.WARNING),
-                ("Permission Required", ban_stats['permission'], ModernUITheme.PRIMARY),
-                ("Reminders", ban_stats['reminder'], ModernUITheme.SUCCESS)
-            ]
-
-            for title, value, color in ban_stats_data:
-                card = self.create_stats_card(title, value, color)
-                self.ban_stats_container.addWidget(card)
-
-            self.ban_stats_container.addStretch()
-
-            # Get verification statistics
-            verify_stats = self.db.get_verification_statistics(filters)
-
-            # Create modern verification statistics cards
-            verify_stats_data = [
-                ("Total Verifications", verify_stats['total'], ModernUITheme.PRIMARY),
-                ("Allowed", verify_stats['allowed'], ModernUITheme.SUCCESS),
-                ("Rejected", verify_stats['rejected'], ModernUITheme.ERROR),
-                ("Conditional", verify_stats['conditional'], ModernUITheme.WARNING),
-                ("Success Rate", f"{verify_stats['success_rate']:.1f}%", ModernUITheme.SECONDARY)
-            ]
-
-            for title, value, color in verify_stats_data:
-                card = self.create_stats_card(title, value, color)
-                self.verify_stats_container.addWidget(card)
-
-            self.verify_stats_container.addStretch()
-
-            # Load recent data
-            self.load_recent_ban_records(filters)
-            self.load_recent_activity()
-
-            # Update status bar
-            current_time = datetime.now().strftime("%H:%M:%S")
-            filter_status = " (Filtered)" if self.dashboard_filters_applied else " (All Data)"
-            self.status_bar.showMessage(
-                f"Dashboard refreshed at {current_time}{filter_status} - "
-                f"{ban_stats['total_bans']} bans, {verify_stats['total']} verifications"
-            )
-
-            logger.info(f"Dashboard refreshed with filters: {filters is not None}")
-
-        except Exception as e:
-            logger.error(f"Error refreshing dashboard: {e}")
-            self.status_bar.showMessage(f"Dashboard refresh error: {e}")
+        """Legacy method redirects to async version"""
+        self.refresh_dashboard_async()
 
     def load_recent_ban_records(self, filters=None):
         """Load recent ban records from ban_records table"""
@@ -4726,48 +5484,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error loading recent activity: {e}")
 
     def verify_latest_tanker(self):
-        """Verify latest tanker from server"""
-        try:
-            self.status_bar.showMessage("Verifying latest tanker...")
-
-            status, reason, details = self.db.simple_tanker_verification(self.user_info['username'])
-            tanker_number = details.get("tanker_number", "UNKNOWN")
-
-            self.update_auto_verification_display(tanker_number, status, reason, details)
-
-            if details.get("play_sound", False):
-                self.play_warning_sound_for_status(status)
-
-            self.refresh_dashboard()
-            self.status_bar.showMessage(f"Latest tanker verified: {tanker_number}")
-
-        except Exception as e:
-            logger.error(f"Error verifying latest tanker: {e}")
-            self.status_bar.showMessage(f"Verification error: {e}")
+        """Legacy method redirects to async version"""
+        self.verify_latest_tanker_async()
 
     def verify_manual_tanker(self):
-        """Verify manually entered tanker"""
-        try:
-            tanker_number = self.manual_tanker_input.text().strip().upper()
-            if not tanker_number:
-                QMessageBox.warning(self, "Input Required", "Please enter a tanker number")
-                return
-
-            self.status_bar.showMessage(f"Verifying tanker: {tanker_number}")
-
-            status, reason, details = self.db.verify_specific_tanker(tanker_number, self.user_info['username'])
-
-            self.update_manual_verification_display(tanker_number, status, reason, details)
-
-            if details.get("play_sound", False):
-                self.play_warning_sound_for_status(status)
-
-            self.refresh_dashboard()
-            self.status_bar.showMessage(f"Manual verification completed: {tanker_number}")
-
-        except Exception as e:
-            logger.error(f"Error verifying manual tanker: {e}")
-            self.status_bar.showMessage(f"Manual verification error: {e}")
+        """Legacy method redirects to async version"""
+        self.verify_manual_tanker_async()
 
     def update_auto_verification_display(self, tanker_number, status, reason, details):
         """Update auto verification display with modern styling"""
@@ -5232,121 +5954,8 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing log filters: {e}")
 
     def load_bans_table(self):
-        """Load bans table with proper filter handling"""
-        try:
-            filters = self.current_ban_filters if self.ban_filters_applied else None
-            bans = self.db.get_all_bans(filters)
-            self.bans_table.setRowCount(0)
-
-            # Update ban count display
-            if hasattr(self, 'ban_count_label'):
-                filter_text = ""
-                if filters:
-                    applied_filters = []
-                    if filters.get('start_date') and filters.get('end_date'):
-                        applied_filters.append(f"Date: {filters['start_date']} to {filters['end_date']}")
-                    if filters.get('tanker_number'):
-                        applied_filters.append(f"Tanker: {filters['tanker_number']}")
-                    if filters.get('reason'):
-                        applied_filters.append(f"Reason: {filters['reason']}")
-                    if filters.get('ban_type'):
-                        applied_filters.append(f"Type: {filters['ban_type']}")
-
-                    if applied_filters:
-                        filter_text = f" (Filtered: {', '.join(applied_filters)})"
-                else:
-                    filter_text = " (All Records)"
-
-                self.ban_count_label.setText(
-                    f"📊 Showing {len(bans)} ban records from local database{filter_text}"
-                )
-
-            for row, ban in enumerate(bans):
-                self.bans_table.insertRow(row)
-
-                # Add data columns
-                for col in range(7):
-                    value = ban[col] if col < len(ban) else ""
-
-                    if col == 4 or col == 5:  # Date columns
-                        if value:
-                            try:
-                                date_obj = datetime.strptime(value, "%Y-%m-%d").date()
-                                formatted_date = date_obj.strftime("%d/%m/%Y")
-                            except:
-                                formatted_date = value
-                        else:
-                            formatted_date = "No End Date" if col == 5 else ""
-                        item = QTableWidgetItem(formatted_date)
-                    else:
-                        item = QTableWidgetItem(str(value) if value else "")
-
-                    # Color code ban types with modern colors
-                    if col == 3:  # Ban type column
-                        if value == "permanent":
-                            item.setForeground(QColor(ModernUITheme.ERROR))
-                            item.setToolTip("Permanent ban - Cannot enter")
-                        elif value == "temporary":
-                            item.setForeground(QColor(ModernUITheme.WARNING))
-                            item.setToolTip("Temporary ban - Time limited")
-                        elif value == "permission":
-                            item.setForeground(QColor(ModernUITheme.PRIMARY))
-                            item.setToolTip("Permission required - Special approval needed")
-                        elif value == "reminder":
-                            item.setForeground(QColor(ModernUITheme.SUCCESS))
-                            item.setToolTip("Reminder only - Warning message")
-
-                    self.bans_table.setItem(row, col, item)
-
-                # Add voice playback button
-                voice_data = ban[7] if len(ban) > 7 else None
-                tanker_number = ban[1] if len(ban) > 1 else ""
-
-                if voice_data and AUDIO_AVAILABLE:
-                    voice_btn = QPushButton("🎵 Play")
-                    voice_btn.setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {ModernUITheme.SUCCESS};
-                            color: white;
-                            border: none;
-                            border-radius: {ModernUITheme.RADIUS_SM};
-                            padding: {ModernUITheme.SPACE_XS} {ModernUITheme.SPACE_SM};
-                            font-size: {ModernUITheme.FONT_SIZE_XS};
-                            font-weight: 500;
-                        }}
-                        QPushButton:hover {{
-                            background-color: #047857;
-                        }}
-                    """)
-                    voice_btn.setToolTip(f"Play voice note for {tanker_number}")
-
-                    voice_btn.clicked.connect(
-                        lambda checked, v_data=voice_data, t_number=tanker_number:
-                        self.play_ban_voice(v_data, t_number)
-                    )
-                    self.bans_table.setCellWidget(row, 7, voice_btn)
-                else:
-                    no_voice_item = QTableWidgetItem("No Voice" if not voice_data else "Audio N/A")
-                    no_voice_item.setForeground(QColor(ModernUITheme.TEXT_MUTED))
-                    no_voice_item.setFlags(no_voice_item.flags() & ~Qt.ItemIsEnabled)
-                    no_voice_item.setToolTip("No voice recording available")
-                    self.bans_table.setItem(row, 7, no_voice_item)
-
-            status_msg = f"Loaded {len(bans)} ban records from local database"
-            if filters:
-                status_msg += " (filtered)"
-            else:
-                status_msg += " (all records)"
-            self.status_bar.showMessage(status_msg)
-
-            logger.info(f"Ban table loaded with {len(bans)} records, filters: {filters is not None}")
-
-        except Exception as e:
-            logger.error(f"Error loading bans table: {e}")
-            self.status_bar.showMessage(f"Error loading ban records: {e}")
-            if hasattr(self, 'ban_count_label'):
-                self.ban_count_label.setText("❌ Error loading ban records from local database")
-
+        """Legacy method redirects to async version"""
+        self.load_bans_table_async()
     def play_ban_voice(self, voice_data, tanker_number):
         """Play voice note from ban management table"""
         if voice_data and self.audio_recorder:
@@ -5407,13 +6016,15 @@ class MainWindow(QMainWindow):
 
     # Navigation methods
     def show_dashboard(self):
-        """Show dashboard page"""
+        """Show dashboard page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.dashboard_page)
-            self.refresh_dashboard()
-            self.status_bar.showMessage("Dashboard page loaded")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'dashboard_page'):
+                self.stacked_widget.setCurrentWidget(self.dashboard_page)
+                self.refresh_dashboard_async()  # Changed to async
+                self.status_bar.showMessage("Dashboard page loaded")
         except Exception as e:
             logger.error(f"Error showing dashboard: {e}")
+
 
     def show_verification(self):
         """Show auto verification page"""
@@ -5432,23 +6043,24 @@ class MainWindow(QMainWindow):
             logger.error(f"Error showing manual verify page: {e}")
 
     def show_bans(self):
-        """Show ban management page"""
+        """Show ban management page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.bans_page)
-            self.ban_filters_applied = False
-            self.current_ban_filters = None
-            self.load_bans_table()
-            self.status_bar.showMessage("Ban management page loaded - Showing all records")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'bans_page'):
+                self.stacked_widget.setCurrentWidget(self.bans_page)
+                self.ban_filters_applied = False
+                self.current_ban_filters = None
+                self.load_bans_table_async()  # Changed to async
+                self.status_bar.showMessage("Ban management page loaded")
         except Exception as e:
             logger.error(f"Error showing bans page: {e}")
-            self.status_bar.showMessage(f"Error loading ban management page: {e}")
 
     def show_logs(self):
-        """Show activity logs page"""
+        """Show activity logs page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.logs_page)
-            self.load_logs_table()
-            self.status_bar.showMessage("Activity logs page loaded")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'logs_page'):
+                self.stacked_widget.setCurrentWidget(self.logs_page)
+                self.load_logs_table_async()  # Changed to async
+                self.status_bar.showMessage("Activity logs page loaded")
         except Exception as e:
             logger.error(f"Error showing logs page: {e}")
 
@@ -5496,74 +6108,11 @@ class MainWindow(QMainWindow):
             self.local_path_input.setText(file_path)
 
     def test_server_connection(self):
-        """Test server database connection"""
-        try:
-            self.server_status_label.setText("Server Status: Testing...")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_SECONDARY};")
-            QApplication.processEvents()
-
-            server_path = self.server_path_input.text().strip()
-            if not server_path:
-                self.server_status_label.setText("Server Status: ❌ No path specified")
-                self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            if not PYODBC_AVAILABLE:
-                self.server_status_label.setText("Server Status: ❌ pyodbc not available")
-                self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            connection_strings = [
-                f"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={server_path};",
-                f"Driver={{Microsoft Access Driver (*.mdb)}};DBQ={server_path};",
-            ]
-
-            for conn_str in connection_strings:
-                try:
-                    conn = pyodbc.connect(conn_str, timeout=3)
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM VehicleMaster")
-                    count = cursor.fetchone()[0]
-                    conn.close()
-                    self.server_status_label.setText(f"Server Status: ✅ Connected ({count} vehicles)")
-                    self.server_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
-                    return
-                except Exception:
-                    continue
-
-            self.server_status_label.setText("Server Status: ❌ Connection failed")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-
-        except Exception as e:
-            self.server_status_label.setText(f"Server Status: ❌ Error: {str(e)[:50]}")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-
+        """Legacy method redirects to async version"""
+        self.test_server_connection_async()
     def test_local_connection(self):
-        """Test local database connection"""
-        try:
-            self.local_status_label.setText("Local Status: Testing...")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_SECONDARY};")
-            QApplication.processEvents()
-
-            local_path = self.local_path_input.text().strip()
-            if not local_path:
-                self.local_status_label.setText("Local Status: ❌ No path specified")
-                self.local_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-
-            with sqlite3.connect(local_path, timeout=10) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-
-            self.local_status_label.setText(f"Local Status: ✅ Connected ({len(tables)} tables)")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
-
-        except Exception as e:
-            self.local_status_label.setText(f"Local Status: ❌ Error: {str(e)[:50]}")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
+        """Legacy method redirects to async version"""
+        self.test_local_connection_async()
 
     def test_all_connections(self):
         """Test all database connections"""
@@ -5850,11 +6399,15 @@ class MainWindow(QMainWindow):
         """Clean shutdown with improved cleanup"""
         try:
             logger.info(f"TDF System shutdown initiated - User: {self.user_info['username']}")
-
-            if self.audio_recorder:
+            if hasattr(self, 'db_worker') and self.db_worker:
+                logger.info("Stopping database worker thread...")
+                self.db_worker.stop_thread()
+            for overlay in self.loading_overlays.values():
+                overlay.hide_loading()
+            if hasattr(self, 'audio_recorder') and self.audio_recorder:
                 self.audio_recorder.stop_any_operation()
 
-            if self.warning_sound:
+            if hasattr(self, 'warning_sound') and self.warning_sound:
                 self.warning_sound.stop()
 
             if hasattr(self, 'monitor_timer') and self.monitor_timer:
@@ -5870,7 +6423,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Error during shutdown: {e}")
             event.accept()
-
 def main():
     """Main entry point with modern UI and enhanced functionality"""
     try:
@@ -6023,7 +6575,12 @@ def main():
         except:
             print(f"FATAL ERROR: {e}")
         return 1
+    window = MainWindow(user_info, config_manager)
+    if hasattr(window, 'db_worker'):
+        window.db_worker.start()
+        logger.info("Database worker thread started")
 
+    window.show()
 if __name__ == "__main__":
     try:
         exit_code = main()
@@ -6034,3 +6591,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Unhandled exception: {e}")
         sys.exit(1)
+# Triggering CodeRabbit for unused code detection
