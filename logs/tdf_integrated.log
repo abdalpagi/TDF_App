@@ -1506,3 +1506,1151 @@
 2025-07-19 07:31:47,720 - INFO - Testing database initialization...
 2025-07-19 07:31:47,720 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
 2025-07-19 07:31:47,720 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-20 01:53:08,857 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 01:53:08,857 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 01:53:08,881 - INFO - Initializing configuration...
+2025-07-20 01:53:08,882 - INFO - Configuration initialized successfully
+2025-07-20 01:53:08,882 - INFO - Testing database initialization...
+2025-07-20 01:53:08,882 - ERROR - Error initializing SQLite database: [WinError 3] The system cannot find the path specified: ''
+2025-07-20 01:53:08,882 - ERROR - Database initialization failed: [WinError 3] The system cannot find the path specified: ''
+2025-07-20 01:56:48,564 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 01:56:48,564 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 01:56:48,610 - INFO - Initializing configuration...
+2025-07-20 01:56:48,611 - INFO - Configuration initialized successfully
+2025-07-20 01:56:48,611 - INFO - Testing database initialization...
+2025-07-20 01:56:48,618 - INFO - SQLite database initialized successfully
+2025-07-20 01:56:49,187 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:56:49,281 - INFO - Database initialization successful
+2025-07-20 01:56:49,281 - INFO - Initializing user manager...
+2025-07-20 01:56:49,281 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 01:56:49,283 - INFO - Users table exists, checking schema...
+2025-07-20 01:56:49,284 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 01:56:49,284 - INFO - Found 3 existing users in database
+2025-07-20 01:56:49,284 - INFO - Checking and updating existing users...
+2025-07-20 01:56:49,284 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 01:56:49,284 - INFO - User tables initialized successfully with schema migration
+2025-07-20 01:56:49,284 - INFO - User manager initialized successfully
+2025-07-20 01:56:49,287 - INFO - Found 3 default users in database
+2025-07-20 01:56:52,740 - INFO - Attempting authentication for user: admin
+2025-07-20 01:56:52,758 - INFO - Authentication successful for user: admin
+2025-07-20 01:56:52,759 - INFO - Login successful for: admin
+2025-07-20 01:56:52,767 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 01:56:52,775 - INFO - SQLite database initialized successfully
+2025-07-20 01:56:52,865 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:56:52,936 - INFO - Users table exists, checking schema...
+2025-07-20 01:56:52,936 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 01:56:52,937 - INFO - Found 3 existing users in database
+2025-07-20 01:56:52,937 - INFO - Checking and updating existing users...
+2025-07-20 01:56:52,937 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 01:56:52,937 - INFO - User tables initialized successfully with schema migration
+2025-07-20 01:56:52,979 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 01:56:53,035 - INFO - Modern main window created and displayed successfully
+2025-07-20 01:56:53,036 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 01:56:53,036 - INFO - Enhanced features:
+2025-07-20 01:56:53,036 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 01:56:53,036 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 01:56:53,036 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 01:56:53,036 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 01:56:53,037 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 01:56:53,037 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 01:56:53,037 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 01:56:53,447 - INFO - Server connection test started asynchronously
+2025-07-20 01:56:53,447 - INFO - Local connection test started asynchronously
+2025-07-20 01:56:53,451 - INFO - DatabaseWorker thread started
+2025-07-20 01:56:53,456 - INFO - Operation started: op_1_1752962213 - Testing database connection...
+2025-07-20 01:56:53,486 - INFO - Initial dashboard load started asynchronously
+2025-07-20 01:56:53,578 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:56:53,630 - INFO - Connection test server: Success
+2025-07-20 01:56:53,631 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 01:56:53,631 - INFO - Operation completed: test_server
+2025-07-20 01:56:53,631 - INFO - Operation started: op_2_1752962213 - Testing database connection...
+2025-07-20 01:56:53,632 - INFO - Connection test local: Success
+2025-07-20 01:56:53,637 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 01:56:53,637 - INFO - Operation completed: test_local
+2025-07-20 01:56:53,637 - INFO - Operation started: op_3_1752962213 - Calculating statistics...
+2025-07-20 01:56:53,722 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:56:53,729 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:56:53,729 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:56:53,729 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:56:53,729 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 01:56:56,058 - INFO - Monitoring started successfully
+2025-07-20 01:56:58,498 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:56:58,499 - INFO - Operation started: op_4_1752962218 - Calculating statistics...
+2025-07-20 01:56:58,610 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:56:58,616 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:56:58,616 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:56:58,620 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:56:58,620 - INFO - Operation completed: dashboard_refresh
+2025-07-20 01:57:04,693 - INFO - Ban table load started asynchronously
+2025-07-20 01:57:04,694 - INFO - Operation started: op_5_1752962224 - Loading ban records...
+2025-07-20 01:57:04,735 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:57:04,737 - INFO - Loaded 0 ban records
+2025-07-20 01:57:04,738 - INFO - Bans table updated with 0 records
+2025-07-20 01:57:04,742 - INFO - Operation completed: load_bans
+2025-07-20 01:57:06,287 - INFO - Ban table load started asynchronously
+2025-07-20 01:57:06,287 - INFO - Ban filters applied: {'start_date': '2024-07-20', 'end_date': '2025-07-20'}
+2025-07-20 01:57:06,288 - INFO - Operation started: op_6_1752962226 - Loading ban records...
+2025-07-20 01:57:06,297 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 01:57:06,297 - INFO - Loaded 0 ban records
+2025-07-20 01:57:06,297 - INFO - Bans table updated with 0 records
+2025-07-20 01:57:06,297 - INFO - Operation completed: load_bans
+2025-07-20 01:57:07,699 - INFO - Ban table load started asynchronously
+2025-07-20 01:57:07,700 - INFO - Ban filters cleared
+2025-07-20 01:57:07,700 - INFO - Operation started: op_7_1752962227 - Loading ban records...
+2025-07-20 01:57:07,737 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:57:07,739 - INFO - Loaded 0 ban records
+2025-07-20 01:57:07,740 - INFO - Bans table updated with 0 records
+2025-07-20 01:57:07,740 - INFO - Operation completed: load_bans
+2025-07-20 01:57:12,665 - INFO - Latest tanker verification started asynchronously
+2025-07-20 01:57:12,665 - INFO - Operation started: op_8_1752962232 - Verifying tanker...
+2025-07-20 01:57:15,159 - INFO - Tanker verification completed: DENIED
+2025-07-20 01:57:15,576 - INFO - Playing warning sound for status: DENIED
+2025-07-20 01:57:15,577 - INFO - Verification completed: DENIED - PERMANENT BAN: banned not following the rule 
+2025-07-20 01:57:15,577 - INFO - Operation completed: verify_latest
+2025-07-20 01:59:00,615 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 01:59:00,616 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 01:59:00,661 - INFO - Initializing configuration...
+2025-07-20 01:59:00,662 - INFO - Configuration initialized successfully
+2025-07-20 01:59:00,662 - INFO - Testing database initialization...
+2025-07-20 01:59:00,667 - INFO - SQLite database initialized successfully
+2025-07-20 01:59:01,266 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:59:01,387 - INFO - Database initialization successful
+2025-07-20 01:59:01,388 - INFO - Initializing user manager...
+2025-07-20 01:59:01,388 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 01:59:01,390 - INFO - Users table exists, checking schema...
+2025-07-20 01:59:01,390 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 01:59:01,390 - INFO - Found 3 existing users in database
+2025-07-20 01:59:01,391 - INFO - Checking and updating existing users...
+2025-07-20 01:59:01,391 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 01:59:01,391 - INFO - User tables initialized successfully with schema migration
+2025-07-20 01:59:01,391 - INFO - User manager initialized successfully
+2025-07-20 01:59:01,393 - INFO - Found 3 default users in database
+2025-07-20 01:59:04,247 - INFO - Attempting authentication for user: admin
+2025-07-20 01:59:04,259 - INFO - Authentication successful for user: admin
+2025-07-20 01:59:04,259 - INFO - Login successful for: admin
+2025-07-20 01:59:04,268 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 01:59:04,275 - INFO - SQLite database initialized successfully
+2025-07-20 01:59:04,364 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:59:04,430 - INFO - Users table exists, checking schema...
+2025-07-20 01:59:04,430 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 01:59:04,430 - INFO - Found 3 existing users in database
+2025-07-20 01:59:04,430 - INFO - Checking and updating existing users...
+2025-07-20 01:59:04,430 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 01:59:04,430 - INFO - User tables initialized successfully with schema migration
+2025-07-20 01:59:04,467 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 01:59:04,528 - INFO - Modern main window created and displayed successfully
+2025-07-20 01:59:04,528 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 01:59:04,528 - INFO - Enhanced features:
+2025-07-20 01:59:04,528 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 01:59:04,529 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 01:59:04,529 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 01:59:04,529 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 01:59:04,529 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 01:59:04,529 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 01:59:04,530 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 01:59:04,940 - INFO - Server connection test started asynchronously
+2025-07-20 01:59:04,941 - INFO - Local connection test started asynchronously
+2025-07-20 01:59:04,941 - INFO - DatabaseWorker thread started
+2025-07-20 01:59:04,943 - INFO - Operation started: op_1_1752962344 - Testing database connection...
+2025-07-20 01:59:04,975 - INFO - Initial dashboard load started asynchronously
+2025-07-20 01:59:05,066 - INFO - Server connected - 642 vehicles in database
+2025-07-20 01:59:05,118 - INFO - Connection test server: Success
+2025-07-20 01:59:05,119 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 01:59:05,119 - INFO - Operation completed: test_server
+2025-07-20 01:59:05,119 - INFO - Operation started: op_2_1752962344 - Testing database connection...
+2025-07-20 01:59:05,120 - INFO - Connection test local: Success
+2025-07-20 01:59:05,126 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 01:59:05,126 - INFO - Operation completed: test_local
+2025-07-20 01:59:05,126 - INFO - Operation started: op_3_1752962344 - Calculating statistics...
+2025-07-20 01:59:05,185 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:05,190 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:59:05,190 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:05,190 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:05,190 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 01:59:07,695 - INFO - Monitoring started successfully
+2025-07-20 01:59:11,606 - INFO - Latest tanker verification started asynchronously
+2025-07-20 01:59:11,607 - INFO - Operation started: op_4_1752962351 - Verifying tanker...
+2025-07-20 01:59:12,980 - INFO - Tanker verification completed: DENIED
+2025-07-20 01:59:13,373 - INFO - Playing warning sound for status: DENIED
+2025-07-20 01:59:13,374 - INFO - Verification completed: DENIED - PERMANENT BAN: banned not following the rule 
+2025-07-20 01:59:13,374 - INFO - Operation completed: verify_latest
+2025-07-20 01:59:15,654 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:59:15,655 - INFO - Operation started: op_5_1752962355 - Calculating statistics...
+2025-07-20 01:59:15,716 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:15,719 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:59:15,719 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:15,720 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:15,720 - INFO - Operation completed: dashboard_refresh
+2025-07-20 01:59:22,392 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-20 01:59:22,392 - INFO - Operation started: op_6_1752962362 - Verifying tanker...
+2025-07-20 01:59:22,894 - INFO - Tanker verification completed: ALLOWED_WITH_PERMISSION
+2025-07-20 01:59:24,878 - INFO - Playing warning sound for status: ALLOWED_WITH_PERMISSION
+2025-07-20 01:59:24,878 - INFO - Verification completed: ALLOWED_WITH_PERMISSION - PERMISSION REQUIRED: Repair Not Done
+2025-07-20 01:59:24,878 - INFO - Operation completed: verify_manual
+2025-07-20 01:59:27,255 - INFO - Logs table load started asynchronously
+2025-07-20 01:59:27,257 - INFO - Operation started: op_7_1752962367 - Loading activity logs...
+2025-07-20 01:59:27,267 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 01:59:27,268 - INFO - Loaded 0 log records
+2025-07-20 01:59:27,269 - INFO - Logs table updated with 0 records
+2025-07-20 01:59:27,270 - INFO - Operation completed: load_logs
+2025-07-20 01:59:29,999 - INFO - Logs table load started asynchronously
+2025-07-20 01:59:30,000 - INFO - Operation started: op_8_1752962369 - Loading activity logs...
+2025-07-20 01:59:30,006 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 01:59:30,006 - INFO - Loaded 0 log records
+2025-07-20 01:59:30,007 - INFO - Logs table updated with 0 records
+2025-07-20 01:59:30,007 - INFO - Operation completed: load_logs
+2025-07-20 01:59:31,223 - INFO - Ban table load started asynchronously
+2025-07-20 01:59:31,224 - INFO - Operation started: op_9_1752962371 - Loading ban records...
+2025-07-20 01:59:31,267 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:31,270 - INFO - Loaded 0 ban records
+2025-07-20 01:59:31,271 - INFO - Bans table updated with 0 records
+2025-07-20 01:59:31,271 - INFO - Operation completed: load_bans
+2025-07-20 01:59:34,706 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:59:34,706 - INFO - Operation started: op_10_1752962374 - Calculating statistics...
+2025-07-20 01:59:34,758 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:34,762 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:59:34,762 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:34,763 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:34,763 - INFO - Operation completed: dashboard_refresh
+2025-07-20 01:59:39,275 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:59:39,275 - INFO - Dashboard filter applied: {'start_date': '2025-06-20', 'end_date': '2025-07-20'}
+2025-07-20 01:59:39,276 - INFO - Operation started: op_11_1752962379 - Calculating statistics...
+2025-07-20 01:59:39,299 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 01:59:39,301 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 01:59:39,301 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:39,303 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:39,303 - INFO - Operation completed: dashboard_refresh
+2025-07-20 01:59:40,340 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:59:40,340 - INFO - Dashboard filter cleared
+2025-07-20 01:59:40,340 - INFO - Operation started: op_12_1752962380 - Calculating statistics...
+2025-07-20 01:59:40,418 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:40,424 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:59:40,424 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:40,425 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:40,425 - INFO - Operation completed: dashboard_refresh
+2025-07-20 01:59:42,517 - INFO - Dashboard refresh started asynchronously
+2025-07-20 01:59:42,518 - INFO - Operation started: op_13_1752962382 - Calculating statistics...
+2025-07-20 01:59:42,563 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 01:59:42,566 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 01:59:42,566 - INFO - Dashboard statistics calculated successfully
+2025-07-20 01:59:42,567 - INFO - Dashboard statistics updated successfully
+2025-07-20 01:59:42,567 - INFO - Operation completed: dashboard_refresh
+2025-07-20 02:00:06,052 - INFO - Logs table load started asynchronously
+2025-07-20 02:00:06,053 - INFO - Operation started: op_14_1752962406 - Loading activity logs...
+2025-07-20 02:00:06,063 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 02:00:06,063 - INFO - Loaded 0 log records
+2025-07-20 02:00:06,065 - INFO - Logs table updated with 0 records
+2025-07-20 02:00:06,065 - INFO - Operation completed: load_logs
+2025-07-20 02:00:07,733 - INFO - Ban table load started asynchronously
+2025-07-20 02:00:07,733 - INFO - Operation started: op_15_1752962407 - Loading ban records...
+2025-07-20 02:00:07,801 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 02:00:07,806 - INFO - Loaded 0 ban records
+2025-07-20 02:00:07,807 - INFO - Bans table updated with 0 records
+2025-07-20 02:00:07,807 - INFO - Operation completed: load_bans
+2025-07-20 02:00:13,869 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 02:00:13,869 - INFO - Stopping database worker thread...
+2025-07-20 02:00:13,869 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 02:00:18,875 - INFO - DatabaseWorker thread stopped
+2025-07-20 02:00:19,281 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 02:00:19,288 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 02:00:19,288 - INFO - Stopping database worker thread...
+2025-07-20 02:00:19,288 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 02:00:19,289 - INFO - DatabaseWorker thread stopped
+2025-07-20 02:00:19,289 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 02:00:25,640 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 02:00:25,641 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 02:00:25,695 - INFO - Initializing configuration...
+2025-07-20 02:00:25,696 - INFO - Configuration initialized successfully
+2025-07-20 02:00:25,697 - INFO - Testing database initialization...
+2025-07-20 02:00:25,704 - INFO - SQLite database initialized successfully
+2025-07-20 02:00:26,288 - INFO - Server connected - 642 vehicles in database
+2025-07-20 02:00:26,365 - INFO - Database initialization successful
+2025-07-20 02:00:26,366 - INFO - Initializing user manager...
+2025-07-20 02:00:26,366 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 02:00:26,368 - INFO - Users table exists, checking schema...
+2025-07-20 02:00:26,369 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 02:00:26,369 - INFO - Found 3 existing users in database
+2025-07-20 02:00:26,369 - INFO - Checking and updating existing users...
+2025-07-20 02:00:26,369 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 02:00:26,369 - INFO - User tables initialized successfully with schema migration
+2025-07-20 02:00:26,369 - INFO - User manager initialized successfully
+2025-07-20 02:00:26,371 - INFO - Found 3 default users in database
+2025-07-20 02:00:29,146 - INFO - Attempting authentication for user: admin
+2025-07-20 02:00:29,163 - INFO - Authentication successful for user: admin
+2025-07-20 02:00:29,163 - INFO - Login successful for: admin
+2025-07-20 02:00:29,171 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 02:00:29,179 - INFO - SQLite database initialized successfully
+2025-07-20 02:00:29,267 - INFO - Server connected - 642 vehicles in database
+2025-07-20 02:00:29,328 - INFO - Users table exists, checking schema...
+2025-07-20 02:00:29,328 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 02:00:29,329 - INFO - Found 3 existing users in database
+2025-07-20 02:00:29,329 - INFO - Checking and updating existing users...
+2025-07-20 02:00:29,329 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 02:00:29,329 - INFO - User tables initialized successfully with schema migration
+2025-07-20 02:00:29,364 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 02:00:29,421 - INFO - Modern main window created and displayed successfully
+2025-07-20 02:00:29,422 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 02:00:29,422 - INFO - Enhanced features:
+2025-07-20 02:00:29,422 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 02:00:29,422 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 02:00:29,422 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 02:00:29,422 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 02:00:29,422 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 02:00:29,422 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 02:00:29,423 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 02:00:29,838 - INFO - Server connection test started asynchronously
+2025-07-20 02:00:29,838 - INFO - Local connection test started asynchronously
+2025-07-20 02:00:29,860 - INFO - DatabaseWorker thread started
+2025-07-20 02:00:29,861 - INFO - Operation started: op_1_1752962429 - Testing database connection...
+2025-07-20 02:00:29,873 - INFO - Initial dashboard load started asynchronously
+2025-07-20 02:00:29,998 - INFO - Server connected - 642 vehicles in database
+2025-07-20 02:00:30,066 - INFO - Connection test server: Success
+2025-07-20 02:00:30,067 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 02:00:30,067 - INFO - Operation completed: test_server
+2025-07-20 02:00:30,067 - INFO - Operation started: op_2_1752962429 - Testing database connection...
+2025-07-20 02:00:30,068 - INFO - Connection test local: Success
+2025-07-20 02:00:30,073 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 02:00:30,073 - INFO - Operation completed: test_local
+2025-07-20 02:00:30,073 - INFO - Operation started: op_3_1752962429 - Calculating statistics...
+2025-07-20 02:00:30,142 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 02:00:30,147 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 02:00:30,148 - INFO - Dashboard statistics calculated successfully
+2025-07-20 02:00:30,148 - INFO - Dashboard statistics updated successfully
+2025-07-20 02:00:30,148 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 02:00:32,534 - INFO - Monitoring started successfully
+2025-07-20 02:00:34,727 - INFO - Dashboard refresh started asynchronously
+2025-07-20 02:00:34,727 - INFO - Operation started: op_4_1752962434 - Calculating statistics...
+2025-07-20 02:00:34,834 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 02:00:34,839 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 02:00:34,839 - INFO - Dashboard statistics calculated successfully
+2025-07-20 02:00:34,842 - INFO - Dashboard statistics updated successfully
+2025-07-20 02:00:34,843 - INFO - Operation completed: dashboard_refresh
+2025-07-20 02:00:39,368 - INFO - Latest tanker verification started asynchronously
+2025-07-20 02:00:39,368 - INFO - Operation started: op_5_1752962439 - Verifying tanker...
+2025-07-20 02:00:55,081 - INFO - Tanker verification completed: DENIED
+2025-07-20 02:00:56,250 - INFO - Playing warning sound for status: DENIED
+2025-07-20 02:00:56,250 - INFO - Verification completed: DENIED - PERMANENT BAN: banned not following the rule 
+2025-07-20 02:00:56,251 - INFO - Operation completed: verify_latest
+2025-07-20 02:01:00,706 - INFO - Dashboard refresh started asynchronously
+2025-07-20 02:01:00,706 - INFO - Operation started: op_6_1752962460 - Calculating statistics...
+2025-07-20 02:01:00,785 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 02:01:00,790 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 02:01:00,791 - INFO - Dashboard statistics calculated successfully
+2025-07-20 02:01:00,791 - INFO - Dashboard statistics updated successfully
+2025-07-20 02:01:00,792 - INFO - Operation completed: dashboard_refresh
+2025-07-20 02:01:04,317 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 02:01:04,317 - INFO - Stopping database worker thread...
+2025-07-20 02:01:04,318 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 02:01:04,318 - INFO - DatabaseWorker thread stopped
+2025-07-20 02:01:04,655 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 02:32:50,751 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 02:32:50,752 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 02:32:50,834 - INFO - Initializing configuration...
+2025-07-20 02:32:50,835 - INFO - Configuration initialized successfully
+2025-07-20 02:32:50,835 - INFO - Testing database initialization...
+2025-07-20 02:32:50,841 - INFO - SQLite database initialized successfully
+2025-07-20 02:32:51,617 - INFO - Server connected - 642 vehicles in database
+2025-07-20 02:32:51,679 - INFO - Database initialization successful
+2025-07-20 02:32:51,680 - INFO - Initializing user manager...
+2025-07-20 02:32:51,680 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 02:32:51,681 - INFO - Users table exists, checking schema...
+2025-07-20 02:32:51,682 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 02:32:51,682 - INFO - Found 3 existing users in database
+2025-07-20 02:32:51,682 - INFO - Checking and updating existing users...
+2025-07-20 02:32:51,682 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 02:32:51,682 - INFO - User tables initialized successfully with schema migration
+2025-07-20 02:32:51,682 - INFO - User manager initialized successfully
+2025-07-20 02:32:51,683 - INFO - Found 3 default users in database
+2025-07-20 02:32:56,000 - INFO - Login cancelled by user
+2025-07-20 10:02:36,340 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 10:02:36,341 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 10:02:36,397 - INFO - Initializing configuration...
+2025-07-20 10:02:36,398 - INFO - Configuration initialized successfully
+2025-07-20 10:02:36,398 - INFO - Testing database initialization...
+2025-07-20 10:02:36,405 - INFO - SQLite database initialized successfully
+2025-07-20 10:02:36,894 - INFO - Server connected - 642 vehicles in database
+2025-07-20 10:02:36,980 - INFO - Database initialization successful
+2025-07-20 10:02:36,980 - INFO - Initializing user manager...
+2025-07-20 10:02:36,981 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 10:02:36,982 - INFO - Users table exists, checking schema...
+2025-07-20 10:02:36,982 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 10:02:36,983 - INFO - Found 3 existing users in database
+2025-07-20 10:02:36,983 - INFO - Checking and updating existing users...
+2025-07-20 10:02:36,983 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 10:02:36,983 - INFO - User tables initialized successfully with schema migration
+2025-07-20 10:02:36,983 - INFO - User manager initialized successfully
+2025-07-20 10:02:36,984 - INFO - Found 3 default users in database
+2025-07-20 10:02:39,843 - INFO - Attempting authentication for user: admin
+2025-07-20 10:02:39,848 - INFO - Authentication successful for user: admin
+2025-07-20 10:02:39,848 - INFO - Login successful for: admin
+2025-07-20 10:02:39,954 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 10:02:39,969 - INFO - SQLite database initialized successfully
+2025-07-20 10:02:40,499 - INFO - Server connected - 642 vehicles in database
+2025-07-20 10:02:40,697 - INFO - Users table exists, checking schema...
+2025-07-20 10:02:40,698 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 10:02:40,698 - INFO - Found 3 existing users in database
+2025-07-20 10:02:40,698 - INFO - Checking and updating existing users...
+2025-07-20 10:02:40,698 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 10:02:40,698 - INFO - User tables initialized successfully with schema migration
+2025-07-20 10:02:40,854 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 10:02:40,998 - INFO - Modern main window created and displayed successfully
+2025-07-20 10:02:40,999 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 10:02:40,999 - INFO - Enhanced features:
+2025-07-20 10:02:40,999 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 10:02:40,999 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 10:02:40,999 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 10:02:40,999 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 10:02:40,999 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 10:02:40,999 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 10:02:41,000 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 10:02:41,245 - INFO - Server connection test started asynchronously
+2025-07-20 10:02:41,246 - INFO - Local connection test started asynchronously
+2025-07-20 10:02:41,257 - INFO - DatabaseWorker thread started
+2025-07-20 10:02:41,258 - INFO - Operation started: op_1_1752991361 - Testing database connection...
+2025-07-20 10:02:41,365 - INFO - Initial dashboard load started asynchronously
+2025-07-20 10:02:41,450 - INFO - Server connected - 642 vehicles in database
+2025-07-20 10:02:41,540 - INFO - Connection test server: Success
+2025-07-20 10:02:41,541 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 10:02:41,541 - INFO - Operation completed: test_server
+2025-07-20 10:02:41,541 - INFO - Operation started: op_2_1752991361 - Testing database connection...
+2025-07-20 10:02:41,543 - INFO - Connection test local: Success
+2025-07-20 10:02:41,547 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 10:02:41,547 - INFO - Operation completed: test_local
+2025-07-20 10:02:41,547 - INFO - Operation started: op_3_1752991361 - Calculating statistics...
+2025-07-20 10:02:41,624 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 10:02:41,630 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 10:02:41,630 - INFO - Dashboard statistics calculated successfully
+2025-07-20 10:02:41,630 - INFO - Dashboard statistics updated successfully
+2025-07-20 10:02:41,630 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 10:02:43,667 - INFO - Monitoring started successfully
+2025-07-20 10:02:44,486 - INFO - Dashboard refresh started asynchronously
+2025-07-20 10:02:44,487 - INFO - Operation started: op_4_1752991364 - Calculating statistics...
+2025-07-20 10:02:44,642 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 10:02:44,648 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 10:02:44,648 - INFO - Dashboard statistics calculated successfully
+2025-07-20 10:02:44,652 - INFO - Dashboard statistics updated successfully
+2025-07-20 10:02:44,652 - INFO - Operation completed: dashboard_refresh
+2025-07-20 10:02:50,734 - INFO - Ban table load started asynchronously
+2025-07-20 10:02:50,735 - INFO - Operation started: op_5_1752991370 - Loading ban records...
+2025-07-20 10:02:50,786 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 10:02:50,789 - INFO - Loaded 0 ban records
+2025-07-20 10:02:50,790 - INFO - Bans table updated with 0 records
+2025-07-20 10:02:50,790 - INFO - Operation completed: load_bans
+2025-07-20 10:02:51,805 - INFO - Logs table load started asynchronously
+2025-07-20 10:02:51,806 - INFO - Operation started: op_6_1752991371 - Loading activity logs...
+2025-07-20 10:02:51,817 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 10:02:51,817 - INFO - Loaded 0 log records
+2025-07-20 10:02:51,818 - INFO - Logs table updated with 0 records
+2025-07-20 10:02:51,819 - INFO - Operation completed: load_logs
+2025-07-20 10:03:00,245 - INFO - Log query executed with 1 parameters, returned 100 results
+2025-07-20 10:03:00,248 - INFO - Log table loaded with 100 records, filters: False
+2025-07-20 10:03:00,248 - INFO - Log filters cleared
+2025-07-20 10:03:30,273 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 10:03:30,274 - INFO - Stopping database worker thread...
+2025-07-20 10:03:30,274 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 10:03:30,275 - INFO - DatabaseWorker thread stopped
+2025-07-20 10:03:30,275 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 11:17:15,472 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:17:15,473 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:17:15,503 - INFO - Initializing configuration...
+2025-07-20 11:17:15,503 - INFO - Configuration initialized successfully
+2025-07-20 11:17:15,503 - INFO - Testing database initialization...
+2025-07-20 11:17:15,506 - INFO - SQLite database initialized successfully
+2025-07-20 11:17:15,800 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:17:15,873 - INFO - Database initialization successful
+2025-07-20 11:17:15,873 - INFO - Initializing user manager...
+2025-07-20 11:17:15,873 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:17:15,874 - INFO - Users table exists, checking schema...
+2025-07-20 11:17:15,874 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:17:15,875 - INFO - Found 3 existing users in database
+2025-07-20 11:17:15,875 - INFO - Checking and updating existing users...
+2025-07-20 11:17:15,875 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:17:15,875 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:17:15,875 - INFO - User manager initialized successfully
+2025-07-20 11:17:15,876 - INFO - Found 3 default users in database
+2025-07-20 11:17:18,660 - INFO - Attempting authentication for user: admin
+2025-07-20 11:17:18,678 - INFO - Authentication successful for user: admin
+2025-07-20 11:17:18,678 - INFO - Login successful for: admin
+2025-07-20 11:17:18,779 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:17:18,787 - INFO - SQLite database initialized successfully
+2025-07-20 11:17:18,869 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:17:18,936 - INFO - Users table exists, checking schema...
+2025-07-20 11:17:18,936 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:17:18,936 - INFO - Found 3 existing users in database
+2025-07-20 11:17:18,937 - INFO - Checking and updating existing users...
+2025-07-20 11:17:18,937 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:17:18,937 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:17:18,972 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 11:17:19,025 - INFO - Modern main window created and displayed successfully
+2025-07-20 11:17:19,025 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 11:17:19,025 - INFO - Enhanced features:
+2025-07-20 11:17:19,025 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 11:17:19,025 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 11:17:19,026 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 11:17:19,026 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 11:17:19,026 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 11:17:19,026 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 11:17:19,026 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 11:17:19,446 - INFO - Server connection test started asynchronously
+2025-07-20 11:17:19,446 - INFO - Local connection test started asynchronously
+2025-07-20 11:17:19,460 - INFO - DatabaseWorker thread started
+2025-07-20 11:17:19,460 - INFO - Operation started: op_1_1752995839 - Testing database connection...
+2025-07-20 11:17:19,481 - INFO - Initial dashboard load started asynchronously
+2025-07-20 11:17:19,597 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:17:19,666 - INFO - Connection test server: Success
+2025-07-20 11:17:19,667 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 11:17:19,667 - INFO - Operation completed: test_server
+2025-07-20 11:17:19,667 - INFO - Operation started: op_2_1752995839 - Testing database connection...
+2025-07-20 11:17:19,668 - INFO - Connection test local: Success
+2025-07-20 11:17:19,672 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 11:17:19,672 - INFO - Operation completed: test_local
+2025-07-20 11:17:19,672 - INFO - Operation started: op_3_1752995839 - Calculating statistics...
+2025-07-20 11:17:19,739 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:17:19,744 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:17:19,745 - INFO - Dashboard statistics calculated successfully
+2025-07-20 11:17:19,745 - INFO - Dashboard statistics updated successfully
+2025-07-20 11:17:19,745 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 11:17:22,187 - INFO - Monitoring started successfully
+2025-07-20 11:17:24,349 - INFO - Latest tanker verification started asynchronously
+2025-07-20 11:17:24,349 - INFO - Operation started: op_4_1752995844 - Verifying tanker...
+2025-07-20 11:17:26,818 - INFO - Tanker verification completed: DENIED
+2025-07-20 11:17:27,238 - INFO - Playing warning sound for status: DENIED
+2025-07-20 11:17:27,238 - INFO - Verification completed: DENIED - PERMANENT BAN: banned not following the rule 
+2025-07-20 11:17:27,238 - INFO - Operation completed: verify_latest
+2025-07-20 11:17:32,472 - INFO - Manual tanker verification started asynchronously: 40247
+2025-07-20 11:17:32,472 - INFO - Operation started: op_5_1752995852 - Verifying tanker...
+2025-07-20 11:17:47,480 - INFO - Tanker verification completed: ALLOWED_WITH_PERMISSION
+2025-07-20 11:17:48,784 - INFO - Playing warning sound for status: ALLOWED_WITH_PERMISSION
+2025-07-20 11:17:48,785 - INFO - Verification completed: ALLOWED_WITH_PERMISSION - PERMISSION REQUIRED: Repair Not Done
+2025-07-20 11:17:48,785 - INFO - Operation completed: verify_manual
+2025-07-20 11:17:51,927 - INFO - Logs table load started asynchronously
+2025-07-20 11:17:51,928 - INFO - Operation started: op_6_1752995871 - Loading activity logs...
+2025-07-20 11:17:51,959 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 11:17:51,959 - INFO - Loaded 0 log records
+2025-07-20 11:17:51,961 - INFO - Logs table updated with 0 records
+2025-07-20 11:17:51,961 - INFO - Operation completed: load_logs
+2025-07-20 11:18:02,947 - INFO - Dashboard refresh started asynchronously
+2025-07-20 11:18:02,948 - INFO - Operation started: op_7_1752995882 - Calculating statistics...
+2025-07-20 11:18:02,995 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:18:02,999 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:18:02,999 - INFO - Dashboard statistics calculated successfully
+2025-07-20 11:18:02,999 - INFO - Dashboard statistics updated successfully
+2025-07-20 11:18:02,999 - INFO - Operation completed: dashboard_refresh
+2025-07-20 11:18:06,492 - INFO - Ban table load started asynchronously
+2025-07-20 11:18:06,493 - INFO - Operation started: op_8_1752995886 - Loading ban records...
+2025-07-20 11:18:06,567 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:18:06,572 - INFO - Loaded 0 ban records
+2025-07-20 11:18:06,574 - INFO - Bans table updated with 0 records
+2025-07-20 11:18:06,574 - INFO - Operation completed: load_bans
+2025-07-20 11:18:18,911 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 11:18:18,911 - INFO - Stopping database worker thread...
+2025-07-20 11:18:18,911 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 11:18:23,918 - INFO - DatabaseWorker thread stopped
+2025-07-20 11:18:24,275 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 11:18:24,290 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 11:18:24,291 - INFO - Stopping database worker thread...
+2025-07-20 11:18:24,291 - INFO - Stopping DatabaseWorker thread...
+2025-07-20 11:18:24,291 - INFO - DatabaseWorker thread stopped
+2025-07-20 11:18:24,292 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 11:43:57,622 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:43:57,622 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:43:57,678 - INFO - Initializing configuration...
+2025-07-20 11:43:57,679 - INFO - Configuration initialized successfully
+2025-07-20 11:43:57,679 - INFO - Testing database initialization...
+2025-07-20 11:43:57,685 - INFO - SQLite database initialized successfully
+2025-07-20 11:43:58,247 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:43:58,374 - INFO - Database initialization successful
+2025-07-20 11:43:58,374 - INFO - Initializing user manager...
+2025-07-20 11:43:58,374 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:43:58,376 - INFO - Users table exists, checking schema...
+2025-07-20 11:43:58,377 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:43:58,377 - INFO - Found 3 existing users in database
+2025-07-20 11:43:58,377 - INFO - Checking and updating existing users...
+2025-07-20 11:43:58,377 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:43:58,377 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:43:58,377 - INFO - User manager initialized successfully
+2025-07-20 11:43:58,379 - INFO - Found 3 default users in database
+2025-07-20 11:44:12,142 - INFO - Attempting authentication for user: admin
+2025-07-20 11:44:12,160 - INFO - Authentication successful for user: admin
+2025-07-20 11:44:12,161 - INFO - Login successful for: admin
+2025-07-20 11:44:12,266 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:44:12,272 - INFO - SQLite database initialized successfully
+2025-07-20 11:44:12,351 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:44:12,419 - INFO - Users table exists, checking schema...
+2025-07-20 11:44:12,419 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:44:12,419 - INFO - Found 3 existing users in database
+2025-07-20 11:44:12,419 - INFO - Checking and updating existing users...
+2025-07-20 11:44:12,419 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:44:12,419 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:44:12,438 - ERROR - Error creating main window: type object 'ModernUITheme' has no attribute 'FONT_SIZE_SM'
+2025-07-20 11:44:12,928 - INFO - Server connection test started asynchronously
+2025-07-20 11:44:12,928 - INFO - Local connection test started asynchronously
+2025-07-20 11:44:12,957 - INFO - DatabaseWorker thread started
+2025-07-20 11:44:12,958 - INFO - Operation started: op_1_1752997452 - Testing database connection...
+2025-07-20 11:44:13,092 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:44:13,166 - INFO - Connection test server: Success
+2025-07-20 11:44:13,167 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 11:44:13,167 - INFO - Operation completed: test_server
+2025-07-20 11:44:13,168 - INFO - Operation started: op_2_1752997452 - Testing database connection...
+2025-07-20 11:44:13,169 - INFO - Connection test local: Success
+2025-07-20 11:44:13,169 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 11:44:13,170 - INFO - Operation completed: test_local
+2025-07-20 11:46:43,779 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:46:43,798 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:46:43,845 - INFO - Initializing configuration...
+2025-07-20 11:46:43,845 - INFO - Configuration initialized successfully
+2025-07-20 11:46:43,846 - INFO - Testing database initialization...
+2025-07-20 11:46:43,851 - INFO - SQLite database initialized successfully
+2025-07-20 11:46:44,800 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:46:45,325 - INFO - Database initialization successful
+2025-07-20 11:46:45,325 - INFO - Initializing user manager...
+2025-07-20 11:46:45,327 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:46:45,329 - INFO - Users table exists, checking schema...
+2025-07-20 11:46:45,329 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:46:45,329 - INFO - Found 3 existing users in database
+2025-07-20 11:46:45,329 - INFO - Checking and updating existing users...
+2025-07-20 11:46:45,330 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:46:45,330 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:46:45,331 - INFO - User manager initialized successfully
+2025-07-20 11:46:45,332 - INFO - Found 3 default users in database
+2025-07-20 11:46:47,686 - INFO - Attempting authentication for user: admin
+2025-07-20 11:46:47,704 - INFO - Authentication successful for user: admin
+2025-07-20 11:46:47,704 - INFO - Login successful for: admin
+2025-07-20 11:46:47,723 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:46:47,730 - INFO - SQLite database initialized successfully
+2025-07-20 11:46:47,812 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:46:47,884 - INFO - Users table exists, checking schema...
+2025-07-20 11:46:47,885 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:46:47,885 - INFO - Found 3 existing users in database
+2025-07-20 11:46:47,885 - INFO - Checking and updating existing users...
+2025-07-20 11:46:47,885 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:46:47,885 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:46:47,924 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 11:46:47,978 - INFO - Modern main window created and displayed successfully
+2025-07-20 11:46:47,978 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 11:46:47,978 - INFO - Enhanced features:
+2025-07-20 11:46:47,978 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 11:46:47,978 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 11:46:47,978 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 11:46:47,978 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 11:46:47,978 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 11:46:47,979 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 11:46:47,979 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 11:46:48,696 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:46:48,701 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:46:48,702 - INFO - Dashboard refreshed with filters: False
+2025-07-20 11:46:48,702 - INFO - Initial dashboard data loaded
+2025-07-20 11:46:51,029 - INFO - Monitoring started successfully
+2025-07-20 11:46:55,625 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 11:46:55,626 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 11:47:04,983 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:47:04,983 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:47:05,011 - INFO - Initializing configuration...
+2025-07-20 11:47:05,011 - INFO - Configuration initialized successfully
+2025-07-20 11:47:05,011 - INFO - Testing database initialization...
+2025-07-20 11:47:05,015 - INFO - SQLite database initialized successfully
+2025-07-20 11:47:05,266 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:47:05,325 - INFO - Database initialization successful
+2025-07-20 11:47:05,325 - INFO - Initializing user manager...
+2025-07-20 11:47:05,326 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:47:05,327 - INFO - Users table exists, checking schema...
+2025-07-20 11:47:05,327 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:47:05,327 - INFO - Found 3 existing users in database
+2025-07-20 11:47:05,327 - INFO - Checking and updating existing users...
+2025-07-20 11:47:05,327 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:47:05,327 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:47:05,327 - INFO - User manager initialized successfully
+2025-07-20 11:47:05,328 - INFO - Found 3 default users in database
+2025-07-20 11:47:07,695 - INFO - Login cancelled by user
+2025-07-20 11:51:48,533 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:51:48,534 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:51:48,585 - INFO - Initializing configuration...
+2025-07-20 11:51:48,586 - INFO - Configuration initialized successfully
+2025-07-20 11:51:48,586 - INFO - Testing database initialization...
+2025-07-20 11:51:48,599 - INFO - SQLite database initialized successfully
+2025-07-20 11:51:49,383 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:51:49,491 - INFO - Database initialization successful
+2025-07-20 11:51:49,491 - INFO - Initializing user manager...
+2025-07-20 11:51:49,491 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:51:49,493 - INFO - Users table exists, checking schema...
+2025-07-20 11:51:49,494 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:51:49,494 - INFO - Found 3 existing users in database
+2025-07-20 11:51:49,494 - INFO - Checking and updating existing users...
+2025-07-20 11:51:49,494 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:51:49,494 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:51:49,494 - INFO - User manager initialized successfully
+2025-07-20 11:51:49,496 - INFO - Found 3 default users in database
+2025-07-20 11:51:52,008 - INFO - Attempting authentication for user: admin
+2025-07-20 11:51:52,013 - INFO - Authentication successful for user: admin
+2025-07-20 11:51:52,013 - INFO - Login successful for: admin
+2025-07-20 11:51:52,020 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:51:52,028 - INFO - SQLite database initialized successfully
+2025-07-20 11:51:52,117 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:51:52,177 - INFO - Users table exists, checking schema...
+2025-07-20 11:51:52,177 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:51:52,178 - INFO - Found 3 existing users in database
+2025-07-20 11:51:52,178 - INFO - Checking and updating existing users...
+2025-07-20 11:51:52,178 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:51:52,178 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:51:52,196 - ERROR - Error creating main window: type object 'ModernUITheme' has no attribute 'FONT_SIZE_SM'
+2025-07-20 11:51:52,686 - INFO - Server connection test started asynchronously
+2025-07-20 11:51:52,687 - INFO - Local connection test started asynchronously
+2025-07-20 11:51:52,691 - INFO - DatabaseWorker thread started
+2025-07-20 11:51:52,692 - INFO - Operation started: op_1_1752997912 - Testing database connection...
+2025-07-20 11:51:52,815 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:51:52,886 - INFO - Connection test server: Success
+2025-07-20 11:51:52,887 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 11:51:52,887 - INFO - Operation completed: test_server
+2025-07-20 11:51:52,887 - INFO - Operation started: op_2_1752997912 - Testing database connection...
+2025-07-20 11:51:52,888 - INFO - Connection test local: Success
+2025-07-20 11:51:52,889 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 11:51:52,889 - INFO - Operation completed: test_local
+2025-07-20 11:54:24,669 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:54:24,670 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:54:24,755 - INFO - Initializing configuration...
+2025-07-20 11:54:24,756 - INFO - Configuration initialized successfully
+2025-07-20 11:54:24,756 - INFO - Testing database initialization...
+2025-07-20 11:54:24,761 - INFO - SQLite database initialized successfully
+2025-07-20 11:54:25,304 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:54:25,430 - INFO - Database initialization successful
+2025-07-20 11:54:25,430 - INFO - Initializing user manager...
+2025-07-20 11:54:25,430 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:54:25,433 - INFO - Users table exists, checking schema...
+2025-07-20 11:54:25,433 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:54:25,433 - INFO - Found 3 existing users in database
+2025-07-20 11:54:25,433 - INFO - Checking and updating existing users...
+2025-07-20 11:54:25,434 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:54:25,434 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:54:25,434 - INFO - User manager initialized successfully
+2025-07-20 11:54:25,435 - INFO - Found 3 default users in database
+2025-07-20 11:59:03,404 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:59:03,404 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:59:03,471 - INFO - Initializing configuration...
+2025-07-20 11:59:03,472 - INFO - Configuration initialized successfully
+2025-07-20 11:59:03,472 - INFO - Testing database initialization...
+2025-07-20 11:59:03,478 - INFO - SQLite database initialized successfully
+2025-07-20 11:59:04,123 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:59:04,245 - INFO - Database initialization successful
+2025-07-20 11:59:04,246 - INFO - Initializing user manager...
+2025-07-20 11:59:04,246 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:59:04,248 - INFO - Users table exists, checking schema...
+2025-07-20 11:59:04,249 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:59:04,249 - INFO - Found 3 existing users in database
+2025-07-20 11:59:04,250 - INFO - Checking and updating existing users...
+2025-07-20 11:59:04,250 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:59:04,250 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:59:04,250 - INFO - User manager initialized successfully
+2025-07-20 11:59:04,252 - INFO - Found 3 default users in database
+2025-07-20 11:59:06,263 - INFO - Attempting authentication for user: admin
+2025-07-20 11:59:06,270 - INFO - Authentication successful for user: admin
+2025-07-20 11:59:06,270 - INFO - Login successful for: admin
+2025-07-20 11:59:06,277 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:59:06,283 - INFO - SQLite database initialized successfully
+2025-07-20 11:59:06,371 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:59:06,447 - INFO - Users table exists, checking schema...
+2025-07-20 11:59:06,447 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:59:06,447 - INFO - Found 3 existing users in database
+2025-07-20 11:59:06,447 - INFO - Checking and updating existing users...
+2025-07-20 11:59:06,447 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:59:06,447 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:59:06,465 - ERROR - Error creating main window: type object 'ModernUITheme' has no attribute 'FONT_SIZE_SM'
+2025-07-20 11:59:06,956 - INFO - Server connection test started asynchronously
+2025-07-20 11:59:06,957 - INFO - Local connection test started asynchronously
+2025-07-20 11:59:06,965 - INFO - DatabaseWorker thread started
+2025-07-20 11:59:06,966 - INFO - Operation started: op_1_1752998346 - Testing database connection...
+2025-07-20 11:59:07,089 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:59:07,172 - INFO - Connection test server: Success
+2025-07-20 11:59:07,173 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 11:59:07,173 - INFO - Operation completed: test_server
+2025-07-20 11:59:07,173 - INFO - Operation started: op_2_1752998346 - Testing database connection...
+2025-07-20 11:59:07,175 - INFO - Connection test local: Success
+2025-07-20 11:59:07,175 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 11:59:07,176 - INFO - Operation completed: test_local
+2025-07-20 11:59:39,017 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 11:59:39,017 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 11:59:39,063 - INFO - Initializing configuration...
+2025-07-20 11:59:39,064 - INFO - Configuration initialized successfully
+2025-07-20 11:59:39,064 - INFO - Testing database initialization...
+2025-07-20 11:59:39,069 - INFO - SQLite database initialized successfully
+2025-07-20 11:59:39,337 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:59:39,410 - INFO - Database initialization successful
+2025-07-20 11:59:39,410 - INFO - Initializing user manager...
+2025-07-20 11:59:39,410 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 11:59:39,411 - INFO - Users table exists, checking schema...
+2025-07-20 11:59:39,411 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:59:39,411 - INFO - Found 3 existing users in database
+2025-07-20 11:59:39,411 - INFO - Checking and updating existing users...
+2025-07-20 11:59:39,412 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:59:39,412 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:59:39,412 - INFO - User manager initialized successfully
+2025-07-20 11:59:39,412 - INFO - Found 3 default users in database
+2025-07-20 11:59:41,134 - INFO - Attempting authentication for user: admin
+2025-07-20 11:59:41,159 - INFO - Authentication successful for user: admin
+2025-07-20 11:59:41,159 - INFO - Login successful for: admin
+2025-07-20 11:59:41,268 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 11:59:41,276 - INFO - SQLite database initialized successfully
+2025-07-20 11:59:41,357 - INFO - Server connected - 642 vehicles in database
+2025-07-20 11:59:41,425 - INFO - Users table exists, checking schema...
+2025-07-20 11:59:41,425 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 11:59:41,426 - INFO - Found 3 existing users in database
+2025-07-20 11:59:41,426 - INFO - Checking and updating existing users...
+2025-07-20 11:59:41,426 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 11:59:41,426 - INFO - User tables initialized successfully with schema migration
+2025-07-20 11:59:41,459 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 11:59:41,509 - INFO - Modern main window created and displayed successfully
+2025-07-20 11:59:41,509 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 11:59:41,509 - INFO - Enhanced features:
+2025-07-20 11:59:41,509 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 11:59:41,510 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 11:59:41,510 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 11:59:41,510 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 11:59:41,510 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 11:59:41,510 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 11:59:41,510 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 11:59:42,228 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:59:42,233 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:59:42,234 - INFO - Dashboard refreshed with filters: False
+2025-07-20 11:59:42,234 - INFO - Initial dashboard data loaded
+2025-07-20 11:59:44,119 - INFO - Monitoring started successfully
+2025-07-20 11:59:44,880 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:59:44,886 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:59:44,887 - INFO - Dashboard refreshed with filters: False
+2025-07-20 11:59:57,115 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:59:57,118 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:59:57,119 - INFO - Dashboard refreshed with filters: False
+2025-07-20 11:59:57,119 - INFO - Dashboard filter cleared
+2025-07-20 11:59:58,211 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 11:59:58,216 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 11:59:58,217 - INFO - Dashboard refreshed with filters: False
+2025-07-20 11:59:58,217 - INFO - Dashboard filter cleared
+2025-07-20 12:00:00,715 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 12:00:00,717 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:00:00,717 - INFO - Dashboard refreshed with filters: True
+2025-07-20 12:00:00,718 - INFO - Dashboard filter applied: {'start_date': '2025-06-20', 'end_date': '2025-07-20'}
+2025-07-20 12:00:01,348 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 12:00:01,350 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:00:01,351 - INFO - Dashboard refreshed with filters: True
+2025-07-20 12:00:01,351 - INFO - Dashboard filter applied: {'start_date': '2025-06-20', 'end_date': '2025-07-20'}
+2025-07-20 12:00:26,013 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 12:00:26,014 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:00:26,014 - INFO - Dashboard refreshed with filters: True
+2025-07-20 12:00:26,014 - INFO - Dashboard filter applied: {'start_date': '2025-06-20', 'end_date': '2025-07-20'}
+2025-07-20 12:00:27,731 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:00:27,736 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:00:27,737 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:00:27,737 - INFO - Dashboard filter cleared
+2025-07-20 12:00:33,782 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:00:33,784 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:00:36,024 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 12:00:36,024 - INFO - Ban table loaded with 0 records, filters: True
+2025-07-20 12:00:36,024 - INFO - Ban filters applied: {'start_date': '2024-07-20', 'end_date': '2025-07-20'}
+2025-07-20 12:00:37,341 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:00:37,343 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:00:37,343 - INFO - Ban filters cleared
+2025-07-20 12:00:39,389 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:00:39,391 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:01:15,869 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:01:15,874 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:01:15,875 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:01:18,234 - INFO - Log query executed with 1 parameters, returned 100 results
+2025-07-20 12:01:18,236 - INFO - Log table loaded with 100 records, filters: False
+2025-07-20 12:01:21,118 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:01:21,121 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:01:40,345 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:01:40,348 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:02:25,182 - INFO - Ban query executed with 2 parameters, returned 0 results
+2025-07-20 12:02:25,183 - INFO - Ban table loaded with 0 records, filters: True
+2025-07-20 12:02:25,183 - INFO - Ban filters applied: {'start_date': '2024-07-20', 'end_date': '2025-07-20'}
+2025-07-20 12:03:01,156 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:01,160 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:01,160 - INFO - Ban filters cleared
+2025-07-20 12:03:01,669 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:01,672 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:01,673 - INFO - Ban filters cleared
+2025-07-20 12:03:01,900 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:01,904 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:01,904 - INFO - Ban filters cleared
+2025-07-20 12:03:02,131 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:02,134 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:02,134 - INFO - Ban filters cleared
+2025-07-20 12:03:02,362 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:02,365 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:02,365 - INFO - Ban filters cleared
+2025-07-20 12:03:03,435 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:03,437 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:03,437 - INFO - Ban filters cleared
+2025-07-20 12:03:03,473 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:03,475 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:03:03,475 - INFO - Ban filters cleared
+2025-07-20 12:03:12,440 - INFO - Playing warning sound for status: DENIED
+2025-07-20 12:03:12,495 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:12,499 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:03:12,499 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:03:37,628 - INFO - Playing warning sound for status: ALLOWED_WITH_PERMISSION
+2025-07-20 12:03:37,680 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:37,684 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:03:37,684 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:03:40,484 - INFO - Log query executed with 1 parameters, returned 100 results
+2025-07-20 12:03:40,486 - INFO - Log table loaded with 100 records, filters: False
+2025-07-20 12:03:43,610 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:43,615 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:03:43,616 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:03:44,216 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:03:44,221 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:03:44,222 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:03:46,279 - INFO - Log query executed with 1 parameters, returned 100 results
+2025-07-20 12:03:46,282 - INFO - Log table loaded with 100 records, filters: False
+2025-07-20 12:04:13,203 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:04:13,206 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:04:13,207 - INFO - Dashboard refreshed with filters: False
+2025-07-20 12:04:18,468 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:04:18,470 - INFO - Ban table loaded with 0 records, filters: False
+2025-07-20 12:04:23,551 - INFO - TDF System shutdown initiated - User: admin
+2025-07-20 12:04:23,935 - INFO - TDF System shutdown completed - User: admin
+2025-07-20 12:06:08,265 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 12:06:08,265 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 12:06:08,309 - INFO - Initializing configuration...
+2025-07-20 12:06:08,310 - INFO - Configuration initialized successfully
+2025-07-20 12:06:08,310 - INFO - Testing database initialization...
+2025-07-20 12:06:08,315 - INFO - SQLite database initialized successfully
+2025-07-20 12:06:09,661 - INFO - Server connected - 642 vehicles in database
+2025-07-20 12:06:09,804 - INFO - Database initialization successful
+2025-07-20 12:06:09,804 - INFO - Initializing user manager...
+2025-07-20 12:06:09,804 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 12:06:09,806 - INFO - Users table exists, checking schema...
+2025-07-20 12:06:09,807 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 12:06:09,807 - INFO - Found 3 existing users in database
+2025-07-20 12:06:09,807 - INFO - Checking and updating existing users...
+2025-07-20 12:06:09,807 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 12:06:09,807 - INFO - User tables initialized successfully with schema migration
+2025-07-20 12:06:09,807 - INFO - User manager initialized successfully
+2025-07-20 12:06:09,810 - INFO - Found 3 default users in database
+2025-07-20 12:06:09,812 - ERROR - Fatal error in main: type object 'ModernUITheme' has no attribute 'FONT_SIZE_5XL'
+2025-07-20 12:06:26,229 - INFO - TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING
+2025-07-20 12:06:26,230 - INFO - Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility
+2025-07-20 12:06:26,268 - INFO - Initializing configuration...
+2025-07-20 12:06:26,269 - INFO - Configuration initialized successfully
+2025-07-20 12:06:26,269 - INFO - Testing database initialization...
+2025-07-20 12:06:26,273 - INFO - SQLite database initialized successfully
+2025-07-20 12:06:26,701 - INFO - Server connected - 642 vehicles in database
+2025-07-20 12:06:26,766 - INFO - Database initialization successful
+2025-07-20 12:06:26,766 - INFO - Initializing user manager...
+2025-07-20 12:06:26,766 - INFO - Using local database path: C:/Users/abdalbagi.a/Desktop/CleanTDF/tdf_app.db
+2025-07-20 12:06:26,768 - INFO - Users table exists, checking schema...
+2025-07-20 12:06:26,768 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 12:06:26,769 - INFO - Found 3 existing users in database
+2025-07-20 12:06:26,769 - INFO - Checking and updating existing users...
+2025-07-20 12:06:26,769 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 12:06:26,769 - INFO - User tables initialized successfully with schema migration
+2025-07-20 12:06:26,769 - INFO - User manager initialized successfully
+2025-07-20 12:06:26,770 - INFO - Found 3 default users in database
+2025-07-20 12:06:28,779 - INFO - Attempting authentication for user: admin
+2025-07-20 12:06:28,784 - INFO - Authentication successful for user: admin
+2025-07-20 12:06:28,784 - INFO - Login successful for: admin
+2025-07-20 12:06:28,792 - INFO - Login successful for user: admin (Role: admin)
+2025-07-20 12:06:28,800 - INFO - SQLite database initialized successfully
+2025-07-20 12:06:28,886 - INFO - Server connected - 642 vehicles in database
+2025-07-20 12:06:28,958 - INFO - Users table exists, checking schema...
+2025-07-20 12:06:28,958 - INFO - Existing columns: ['id', 'username', 'password_hash', 'full_name', 'role', 'is_active', 'created_at', 'last_login', 'created_by']
+2025-07-20 12:06:28,958 - INFO - Found 3 existing users in database
+2025-07-20 12:06:28,958 - INFO - Checking and updating existing users...
+2025-07-20 12:06:28,958 - INFO - Final user list: [('admin', 'admin', 1), ('operator', 'operator', 1), ('supervisor', 'supervisor', 1)]
+2025-07-20 12:06:28,958 - INFO - User tables initialized successfully with schema migration
+2025-07-20 12:06:28,994 - INFO - Modern UI main window initialized for user: admin with role: admin
+2025-07-20 12:06:29,049 - INFO - Modern main window created and displayed successfully
+2025-07-20 12:06:29,050 - INFO - TDF System started successfully with Modern Professional Interface
+2025-07-20 12:06:29,050 - INFO - Enhanced features:
+2025-07-20 12:06:29,050 - INFO - - MODERN UI: Professional typography, colors, and visual design
+2025-07-20 12:06:29,050 - INFO - - ACCESSIBILITY: High contrast, readable fonts, clear spacing
+2025-07-20 12:06:29,050 - INFO - - FIXED FILTERS: Properly working filter system with clear indicators
+2025-07-20 12:06:29,050 - INFO - - ROLE-BASED ACCESS: Secure user permission system
+2025-07-20 12:06:29,050 - INFO - - ENHANCED UX: Intuitive navigation and responsive controls
+2025-07-20 12:06:29,050 - INFO - - PROFESSIONAL STYLING: Modern cards, buttons, and layouts
+2025-07-20 12:06:29,051 - INFO - Current user role: admin - Modern interface ready
+2025-07-20 12:06:29,468 - INFO - Server connection test started asynchronously
+2025-07-20 12:06:29,468 - INFO - Local connection test started asynchronously
+2025-07-20 12:06:29,475 - INFO - DatabaseWorker thread started
+2025-07-20 12:06:29,476 - INFO - Operation started: op_1_1752998789 - Testing database connection...
+2025-07-20 12:06:29,503 - INFO - Initial dashboard load started asynchronously
+2025-07-20 12:06:29,593 - INFO - Server connected - 642 vehicles in database
+2025-07-20 12:06:29,650 - INFO - Connection test server: Success
+2025-07-20 12:06:29,651 - INFO - Connection test server: Success - Server connection successful
+2025-07-20 12:06:29,651 - INFO - Operation completed: test_server
+2025-07-20 12:06:29,651 - INFO - Operation started: op_2_1752998789 - Testing database connection...
+2025-07-20 12:06:29,652 - INFO - Connection test local: Success
+2025-07-20 12:06:29,656 - INFO - Connection test local: Success - Local connection successful (8 tables)
+2025-07-20 12:06:29,656 - INFO - Operation completed: test_local
+2025-07-20 12:06:29,657 - INFO - Operation started: op_3_1752998789 - Calculating statistics...
+2025-07-20 12:06:29,725 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:29,731 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:29,732 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:29,732 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:29,732 - INFO - Operation completed: initial_dashboard_load
+2025-07-20 12:06:32,331 - INFO - Monitoring started successfully
+2025-07-20 12:06:35,046 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:35,047 - INFO - Operation started: op_4_1752998795 - Loading ban records...
+2025-07-20 12:06:35,149 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:35,153 - INFO - Loaded 0 ban records
+2025-07-20 12:06:35,156 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:35,156 - INFO - Operation completed: load_bans
+2025-07-20 12:06:36,766 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:36,766 - INFO - Ban filters cleared
+2025-07-20 12:06:36,766 - INFO - Operation started: op_5_1752998796 - Loading ban records...
+2025-07-20 12:06:36,807 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:36,809 - INFO - Loaded 0 ban records
+2025-07-20 12:06:36,810 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:36,814 - INFO - Operation completed: load_bans
+2025-07-20 12:06:37,680 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:37,680 - INFO - Ban filters cleared
+2025-07-20 12:06:37,681 - INFO - Operation started: op_6_1752998797 - Loading ban records...
+2025-07-20 12:06:37,724 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:37,727 - INFO - Loaded 0 ban records
+2025-07-20 12:06:37,728 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:37,728 - INFO - Operation completed: load_bans
+2025-07-20 12:06:37,903 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:37,904 - INFO - Ban filters cleared
+2025-07-20 12:06:37,904 - INFO - Operation started: op_7_1752998797 - Loading ban records...
+2025-07-20 12:06:37,953 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:37,956 - INFO - Loaded 0 ban records
+2025-07-20 12:06:37,957 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:37,957 - INFO - Operation completed: load_bans
+2025-07-20 12:06:38,121 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:38,121 - INFO - Ban filters cleared
+2025-07-20 12:06:38,121 - INFO - Operation started: op_8_1752998798 - Loading ban records...
+2025-07-20 12:06:38,173 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:38,175 - INFO - Loaded 0 ban records
+2025-07-20 12:06:38,177 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:38,177 - INFO - Operation completed: load_bans
+2025-07-20 12:06:39,206 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:39,206 - INFO - Ban filters cleared
+2025-07-20 12:06:39,206 - INFO - Operation started: op_9_1752998799 - Loading ban records...
+2025-07-20 12:06:39,247 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:39,250 - INFO - Loaded 0 ban records
+2025-07-20 12:06:39,250 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:39,251 - INFO - Operation completed: load_bans
+2025-07-20 12:06:40,066 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:40,066 - INFO - Ban filters cleared
+2025-07-20 12:06:40,067 - INFO - Operation started: op_10_1752998800 - Loading ban records...
+2025-07-20 12:06:40,106 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:40,108 - INFO - Loaded 0 ban records
+2025-07-20 12:06:40,109 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:40,109 - INFO - Operation completed: load_bans
+2025-07-20 12:06:44,265 - INFO - Ban table load started asynchronously
+2025-07-20 12:06:44,265 - INFO - Operation started: op_11_1752998804 - Loading ban records...
+2025-07-20 12:06:44,323 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:44,326 - INFO - Loaded 0 ban records
+2025-07-20 12:06:44,328 - INFO - Bans table updated with 0 records
+2025-07-20 12:06:44,328 - INFO - Operation completed: load_bans
+2025-07-20 12:06:45,650 - INFO - Logs table load started asynchronously
+2025-07-20 12:06:45,651 - INFO - Operation started: op_12_1752998805 - Loading activity logs...
+2025-07-20 12:06:45,667 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 12:06:45,667 - INFO - Loaded 0 log records
+2025-07-20 12:06:45,669 - INFO - Logs table updated with 0 records
+2025-07-20 12:06:45,669 - INFO - Operation completed: load_logs
+2025-07-20 12:06:48,973 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:48,973 - INFO - Operation started: op_13_1752998808 - Calculating statistics...
+2025-07-20 12:06:49,064 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:49,070 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:49,070 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:49,073 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:49,073 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:51,445 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:51,446 - INFO - Dashboard filter cleared
+2025-07-20 12:06:51,446 - INFO - Operation started: op_14_1752998811 - Calculating statistics...
+2025-07-20 12:06:51,497 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:51,500 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:51,500 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:51,501 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:51,501 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:52,391 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:52,391 - INFO - Dashboard filter cleared
+2025-07-20 12:06:52,391 - INFO - Operation started: op_15_1752998812 - Calculating statistics...
+2025-07-20 12:06:52,440 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:52,444 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:52,444 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:52,444 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:52,444 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:52,621 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:52,621 - INFO - Dashboard filter cleared
+2025-07-20 12:06:52,621 - INFO - Operation started: op_16_1752998812 - Calculating statistics...
+2025-07-20 12:06:52,672 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:52,676 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:52,676 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:52,677 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:52,677 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:53,207 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:53,207 - INFO - Dashboard filter cleared
+2025-07-20 12:06:53,207 - INFO - Operation started: op_17_1752998813 - Calculating statistics...
+2025-07-20 12:06:53,256 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:53,260 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:53,260 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:53,260 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:53,260 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:54,228 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:54,228 - INFO - Dashboard filter cleared
+2025-07-20 12:06:54,228 - INFO - Operation started: op_18_1752998814 - Calculating statistics...
+2025-07-20 12:06:54,278 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:54,281 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:54,282 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:54,282 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:54,282 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:55,271 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:55,271 - INFO - Operation started: op_19_1752998815 - Calculating statistics...
+2025-07-20 12:06:55,324 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:55,327 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:55,327 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:55,328 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:55,328 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:56,121 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:56,122 - INFO - Operation started: op_20_1752998816 - Calculating statistics...
+2025-07-20 12:06:56,168 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:56,171 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:56,171 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:56,172 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:56,172 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:56,346 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:56,346 - INFO - Operation started: op_21_1752998816 - Calculating statistics...
+2025-07-20 12:06:56,406 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:56,409 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:56,409 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:57,228 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:57,228 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:57,233 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:57,233 - INFO - Operation started: op_22_1752998817 - Calculating statistics...
+2025-07-20 12:06:57,284 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:57,287 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:57,288 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:57,288 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:57,288 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:06:58,323 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:06:58,323 - INFO - Operation started: op_23_1752998818 - Calculating statistics...
+2025-07-20 12:06:58,370 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:06:58,373 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:06:58,374 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:06:58,374 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:06:58,374 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:07:02,150 - INFO - Logs table load started asynchronously
+2025-07-20 12:07:02,151 - INFO - Operation started: op_24_1752998822 - Loading activity logs...
+2025-07-20 12:07:02,161 - INFO - Log query executed with 3 parameters, returned 0 results
+2025-07-20 12:07:02,162 - INFO - Loaded 0 log records
+2025-07-20 12:07:02,164 - INFO - Logs table updated with 0 records
+2025-07-20 12:07:02,164 - INFO - Operation completed: load_logs
+2025-07-20 12:07:10,919 - INFO - Dashboard refresh started asynchronously
+2025-07-20 12:07:10,920 - INFO - Operation started: op_25_1752998830 - Calculating statistics...
+2025-07-20 12:07:10,968 - ERROR - Error getting bans: Could not decode to UTF-8 column 'voice_recording' with text 'RIFF$'
+2025-07-20 12:07:10,971 - INFO - Log query executed with 1 parameters, returned 15 results
+2025-07-20 12:07:10,972 - INFO - Dashboard statistics calculated successfully
+2025-07-20 12:07:10,972 - INFO - Dashboard statistics updated successfully
+2025-07-20 12:07:10,972 - INFO - Operation completed: dashboard_refresh
+2025-07-20 12:07:28,472 - INFO - Latest tanker verification started asynchronously
+2025-07-20 12:07:28,472 - INFO - Operation started: op_26_1752998848 - Verifying tanker...
+2025-07-20 12:07:29,885 - INFO - Tanker verification completed: DENIED
+2025-07-20 12:07:31,450 - INFO - Playing warning sound for status: DENIED
+2025-07-20 12:07:31,451 - INFO - Verification completed: DENIED - PERMANENT BAN: banned not following the rule 
+2025-07-20 12:07:31,451 - INFO - Operation completed: verify_latest
+2025-07-20 12:07:40,956 - INFO - Manual tanker verification started asynchronously: 5001
+2025-07-20 12:07:40,957 - INFO - Operation started: op_27_1752998860 - Verifying tanker...
+2025-07-20 12:07:41,006 - ERROR - Error getting tanker 5001: All connection attempts failed
+2025-07-20 12:07:41,009 - INFO - Tanker verification completed: NOT_FOUND
+2025-07-20 12:07:41,009 - INFO - Verification completed: NOT_FOUND - Tanker 5001 not found in database
+2025-07-20 12:07:41,009 - INFO - Operation completed: verify_manual
