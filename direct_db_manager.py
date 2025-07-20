@@ -39,6 +39,7 @@ try:
     AUDIO_AVAILABLE = True
 except ImportError as e:
     AUDIO_AVAILABLE = False
+# Test pull request to trigger CodeRabbit review
 
 # Configure logging
 os.makedirs('logs', exist_ok=True)
