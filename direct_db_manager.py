@@ -6580,10 +6580,6 @@ def main():
         except:
             print(f"FATAL ERROR: {e}")
         return 1
-    window = MainWindow(user_info, config_manager)
-    if hasattr(window, 'db_worker'):
-        window.db_worker.start()
-        logger.info("Database worker thread started")
 
     window.show()
 if __name__ == "__main__":
