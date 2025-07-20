@@ -841,7 +841,13 @@ class DatabaseManager:
         self.test_server_connection()
 
     def update_paths(self, server_path, local_path):
-        """Update database paths"""
+        """
+        Updates the server and local database paths, refreshes connection strings, reinitializes the local SQLite schema, and tests the server database connection.
+        
+        Parameters:
+            server_path (str): Path to the server (Access) database file.
+            local_path (str): Path to the local SQLite database file.
+        """
         self.server_db = server_path
         self.sqlite_db = local_path
         self.connection_strings = [
@@ -852,7 +858,11 @@ class DatabaseManager:
         self.test_server_connection()
 
     def test_server_connection(self):
-        """Test server connection - ENSURE THIS METHOD EXISTS"""
+        """
+        Attempts to connect to the server database and verifies connectivity by querying the VehicleMaster table.
+        
+        Sets the server availability status based on the connection result. If the pyodbc library is unavailable or an error occurs during the connection or query, marks the server as unavailable.
+        """
         try:
             if not PYODBC_AVAILABLE:
                 self.server_available = False
@@ -870,7 +880,11 @@ class DatabaseManager:
             self.server_available = False
             logger.warning(f"Server connection failed: {e}")
     def init_sqlite(self):
-        """Initialize SQLite database with schema migration support"""
+        """
+        Initializes the SQLite database, creating required tables and indexes with schema migration support.
+        
+        Creates the `ban_records` and `logs` tables if they do not exist, adds missing columns (such as `is_active`) for schema migration, and creates necessary indexes for efficient queries. If the `ban_records` table is empty, inserts sample data for demonstration or testing purposes. Commits all changes and logs the initialization status. Raises an exception if initialization fails.
+        """
         try:
             os.makedirs(os.path.dirname(self.sqlite_db), exist_ok=True)
 
@@ -2439,6 +2453,11 @@ class UserManagementDialog(QDialog):
         """)
 
     def save_user(self):
+        """
+        Validate user input and add or update a user account based on the current dialog mode.
+        
+        Performs input validation for required fields, password confirmation, and minimum password length. In edit mode, updates the existing user's information and password if provided. In add mode, creates a new user account. Displays success or error messages based on the operation outcome.
+        """
         username = self.username_input.text().strip()
         full_name = self.full_name_input.text().strip()
         role = self.role_combo.currentText()
@@ -2509,6 +2528,9 @@ class DatabaseWorker(QThread):
     connection_tested = pyqtSignal(str, bool, str)  # connection_type, success, message
 
     def __init__(self, parent=None):
+        """
+        Initialize the DatabaseWorker thread, setting up the operation queue, synchronization primitives, and running state.
+        """
         super().__init__(parent)
         self.operations_queue = queue.Queue()
         self.current_operation = None
@@ -2517,7 +2539,16 @@ class DatabaseWorker(QThread):
         self.wait_condition = QWaitCondition()
 
     def add_operation(self, operation_type, operation_id, db_instance, *args, **kwargs):
-        """Add operation to queue for async execution"""
+        """
+        Enqueues a database operation for asynchronous execution in the worker thread.
+        
+        Parameters:
+            operation_type (str): The type of operation to perform (e.g., 'load_bans', 'verify_tanker').
+            operation_id (str): A unique identifier for tracking the operation.
+            db_instance: The database or user manager instance required for the operation.
+            *args: Additional positional arguments for the operation.
+            **kwargs: Additional keyword arguments for the operation.
+        """
         operation = {
             'type': operation_type,
             'id': operation_id,
@@ -2537,7 +2568,11 @@ class DatabaseWorker(QThread):
             self.start()
 
     def run(self):
-        """Main thread execution loop"""
+        """
+        Executes queued database operations in a separate thread until stopped.
+        
+        Continuously processes operations from the queue, executing each one and emitting error signals if exceptions occur. Waits for new operations when the queue is empty.
+        """
         logger.info("DatabaseWorker thread started")
 
         while self.is_running:
@@ -2563,7 +2598,11 @@ class DatabaseWorker(QThread):
                     self.current_operation = None
 
     def _execute_operation(self, operation):
-        """Execute individual database operation"""
+        """
+        Executes a single queued database operation and emits corresponding signals for progress and results.
+        
+        Handles various operation types such as loading bans, logs, users, statistics, verifying tankers, and testing connections. Emits signals to indicate operation start, completion, errors, and to deliver operation-specific results to the UI.
+        """
         try:
             op_type = operation['type']
             op_id = operation['id']
@@ -2616,7 +2655,15 @@ class DatabaseWorker(QThread):
             self.operation_error.emit(op_id, str(e))
 
     def _get_operation_description(self, op_type):
-        """Get human-readable description for operation type"""
+        """
+        Return a human-readable description for a given database operation type.
+        
+        Parameters:
+        	op_type (str): The type of database operation.
+        
+        Returns:
+        	str: A descriptive message corresponding to the operation type.
+        """
         descriptions = {
             'load_bans': 'Loading ban records...',
             'load_logs': 'Loading activity logs...',
@@ -2630,7 +2677,15 @@ class DatabaseWorker(QThread):
     # ===== CORRECTED OPERATION IMPLEMENTATIONS =====
 
     def _load_bans(self, db, filters=None):
-        """Load ban records - CALLS EXISTING DatabaseManager methods"""
+        """
+        Retrieves ban records from the database using optional filters.
+        
+        Parameters:
+            filters (dict, optional): Criteria to filter ban records.
+        
+        Returns:
+            list: A list of ban record entries matching the filters.
+        """
         self.operation_progress.emit(self.current_operation['id'], 10, "Loading ban records...")
 
         try:
@@ -2646,7 +2701,16 @@ class DatabaseWorker(QThread):
             raise
 
     def _load_logs(self, db, limit=50, filters=None):
-        """Load activity logs - CALLS EXISTING DatabaseManager methods"""
+        """
+        Retrieves recent activity logs from the database with optional filtering.
+        
+        Parameters:
+        	limit (int): Maximum number of log records to retrieve.
+        	filters (dict, optional): Criteria to filter the logs.
+        
+        Returns:
+        	list: A list of log records matching the specified filters and limit.
+        """
         self.operation_progress.emit(self.current_operation['id'], 10, "Loading activity logs...")
 
         try:
@@ -2662,7 +2726,15 @@ class DatabaseWorker(QThread):
             raise
 
     def _load_users(self, user_manager):
-        """Load user accounts - CALLS EXISTING UserManager methods"""
+        """
+        Retrieves all user accounts from the user manager.
+        
+        Parameters:
+            user_manager: The UserManager instance used to access user account data.
+        
+        Returns:
+            A list of user account records as provided by UserManager.get_all_users().
+        """
         self.operation_progress.emit(self.current_operation['id'], 20, "Loading user accounts...")
 
         try:
@@ -2678,7 +2750,15 @@ class DatabaseWorker(QThread):
             raise
 
     def _load_statistics(self, db, filters=None):
-        """Load dashboard statistics - CALLS EXISTING DatabaseManager methods"""
+        """
+        Loads and aggregates dashboard statistics, including ban and verification statistics, recent bans, and recent logs.
+        
+        Parameters:
+            filters (dict, optional): Filter criteria to apply when retrieving statistics and recent records.
+        
+        Returns:
+            dict: A dictionary containing ban statistics, verification statistics, a list of recent bans, and a list of recent logs.
+        """
         self.operation_progress.emit(self.current_operation['id'], 10, "Calculating statistics...")
 
         try:
@@ -2709,7 +2789,21 @@ class DatabaseWorker(QThread):
             raise
 
     def _verify_tanker(self, db, tanker_number, operator):
-        """Verify tanker - CALLS EXISTING DatabaseManager methods"""
+        """
+        Verifies a tanker by number or verifies the latest tanker using the provided operator.
+        
+        Parameters:
+        	tanker_number (str or None): The tanker number to verify, or None to verify the latest tanker.
+        	operator (str): The username or identifier of the operator performing the verification.
+        
+        Returns:
+        	status (str): The verification status.
+        	reason (str): The reason for the verification result.
+        	details (dict): Additional details about the verification outcome.
+        
+        Raises:
+        	Exception: Propagates any exceptions encountered during verification.
+        """
         tanker_display = tanker_number or 'latest tanker'
         self.operation_progress.emit(self.current_operation['id'], 20, f"Verifying {tanker_display}...")
 
@@ -2731,7 +2825,15 @@ class DatabaseWorker(QThread):
             raise
 
     def _test_connection(self, db, connection_type):
-        """Test database connection - CALLS EXISTING DatabaseManager methods"""
+        """
+        Tests the specified database connection type and returns the result.
+        
+        Parameters:
+            connection_type (str): The type of connection to test, either 'server' or 'local'.
+        
+        Returns:
+            tuple: (success (bool), message (str)) indicating whether the connection was successful and a descriptive message.
+        """
         self.operation_progress.emit(self.current_operation['id'], 30, f"Testing {connection_type} connection...")
 
         try:
@@ -2767,7 +2869,9 @@ class DatabaseWorker(QThread):
             return False, str(e)
 
     def stop_thread(self):
-        """Stop the thread gracefully"""
+        """
+        Gracefully stops the DatabaseWorker thread, ensuring all queued operations are halted and resources are released.
+        """
         logger.info("Stopping DatabaseWorker thread...")
         self.is_running = False
         self.mutex.lock()
@@ -2783,6 +2887,11 @@ class LoadingOverlay(QWidget):
     """Loading overlay that covers the entire widget"""
 
     def __init__(self, parent=None):
+        """
+        Initialize a semi-transparent loading overlay widget with a spinner, message label, and progress bar.
+        
+        Creates a centered layout containing an animated spinner icon, a customizable message, and a styled progress bar. The overlay is hidden by default and includes a timer for spinner animation.
+        """
         super().__init__(parent)
         self.setStyleSheet("""
             LoadingOverlay {
@@ -2848,7 +2957,12 @@ class LoadingOverlay(QWidget):
         self.hide()
 
     def show_loading(self, message="Loading..."):
-        """Show loading overlay"""
+        """
+        Displays the loading overlay with a specified message and starts the spinner animation.
+        
+        Parameters:
+            message (str): The message to display on the overlay. Defaults to "Loading...".
+        """
         self.message_label.setText(message)
         self.progress_bar.setValue(0)
         self.timer.start(500)  # Update every 500ms
@@ -2856,24 +2970,39 @@ class LoadingOverlay(QWidget):
         self.raise_()
 
     def hide_loading(self):
-        """Hide loading overlay"""
+        """
+        Hides the loading overlay and stops the spinner animation.
+        """
         self.timer.stop()
         self.hide()
 
     def update_progress(self, percentage, message=None):
-        """Update loading progress"""
+        """
+        Update the progress bar and optionally the loading message on the overlay.
+        
+        Parameters:
+            percentage (int): The progress percentage to display.
+            message (str, optional): The message to display alongside the progress bar.
+        """
         self.progress_bar.setValue(percentage)
         if message:
             self.message_label.setText(message)
 
     def update_spinner(self):
-        """Update spinner animation"""
+        """
+        Advances the spinner animation by updating the spinner label to the next character in the sequence.
+        """
         self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
         self.spinner_label.setText(self.spinner_chars[self.spinner_index])
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
 
     def __init__(self, user_info, config_manager):
+        """
+        Initialize the main application window with user session, configuration, and all core subsystems.
+        
+        Sets up the asynchronous database worker, audio recorder, warning sound, database and user managers, and UI components. Applies modern styling, initializes filter states, and schedules initial dashboard loading and monitoring. Also configures loading overlays and connects database operation signals for responsive UI updates.
+        """
         super().__init__()
         self.user_info = user_info
         self.config = config_manager
@@ -2919,6 +3048,11 @@ class MainWindow(QMainWindow):
         logger.info(f"Modern UI main window initialized for user: {user_info['username']} with role: {user_info['role']}")
         self.setup_loading_overlays()
     def init_ui(self):
+        """
+        Initializes the main window's user interface with a modern sidebar, content area, and status bar.
+        
+        Sets up the central widget, applies layout settings, and adds the sidebar and content area for navigation and content display.
+        """
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
@@ -2939,6 +3073,11 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.content_area, 1)
 
     def create_modern_sidebar(self):
+        """
+        Create and configure the modern sidebar UI for the main application window.
+        
+        The sidebar includes a title section, navigation buttons with role-based access, a sound control panel, and user information. Navigation options and settings visibility are dynamically adjusted based on the user's role. Sound controls allow toggling and stopping alert sounds. Operator users see a restriction notice for limited access.
+        """
         self.sidebar = QFrame()
         self.sidebar.setObjectName("modernSidebar")
         self.sidebar.setFixedWidth(280)
@@ -3076,7 +3215,9 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(user_container)
 
     def setup_database_signals(self):
-        """Setup database worker signals"""
+        """
+        Connects database worker signals to their corresponding handler methods for asynchronous operation updates and data loading events.
+        """
         self.db_worker.operation_started.connect(self.on_operation_started)
         self.db_worker.operation_progress.connect(self.on_operation_progress)
         self.db_worker.operation_completed.connect(self.on_operation_completed)
@@ -3091,7 +3232,11 @@ class MainWindow(QMainWindow):
         self.db_worker.connection_tested.connect(self.on_connection_tested)
 
     def setup_loading_overlays(self):
-        """Setup loading overlays for each page"""
+        """
+        Initializes and attaches loading overlays to each main page for displaying loading states.
+        
+        Creates and positions a LoadingOverlay widget for the dashboard, bans, and logs pages if they exist, ensuring overlays are properly resized with their parent pages.
+        """
         if hasattr(self, 'dashboard_page'):
             self.loading_overlays['dashboard'] = LoadingOverlay(self.dashboard_page)
 
@@ -3111,14 +3256,24 @@ class MainWindow(QMainWindow):
                 self._setup_overlay_resize(self.logs_page, overlay)
 
     def _setup_overlay_resize(self, page_widget, overlay):
-        """Setup overlay resizing for a page"""
+        """
+        Ensures that the loading overlay resizes dynamically to match the dimensions of the specified page widget.
+        
+        This method overrides the page widget's resize event to update the overlay's geometry whenever the page is resized, maintaining proper alignment and coverage.
+        """
 
         def resize_overlay():
+            """
+            Resizes the overlay to match the dimensions of the associated page widget.
+            """
             overlay.setGeometry(page_widget.rect())
 
         original_resize = page_widget.resizeEvent
 
         def new_resize_event(event):
+            """
+            Handles the resize event for a page widget, ensuring the original resize logic is executed and the associated overlay is resized accordingly.
+            """
             if original_resize:
                 original_resize(event)
             else:
@@ -3129,12 +3284,21 @@ class MainWindow(QMainWindow):
         resize_overlay()  # Initial positioning
 
     def generate_operation_id(self):
-        """Generate unique operation ID"""
+        """
+        Generate a unique identifier for a database operation.
+        
+        Returns:
+            str: A unique operation ID string combining an incrementing counter and the current timestamp.
+        """
         self.operation_counter += 1
         return f"op_{self.operation_counter}_{int(time.time())}"
 
     def initial_dashboard_load_async(self):
-        """Load initial dashboard data asynchronously"""
+        """
+        Initiate asynchronous loading of initial dashboard statistics and display a loading overlay.
+        
+        This method generates a unique operation ID, shows a loading overlay for the dashboard, and enqueues a statistics loading operation to the database worker thread. Errors during initiation are logged and reported in the status bar.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'initial_dashboard_load'
@@ -3150,7 +3314,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Dashboard load error: {e}")
 
     def refresh_dashboard_async(self):
-        """Refresh dashboard asynchronously"""
+        """
+        Initiate an asynchronous refresh of the dashboard data.
+        
+        Triggers the database worker to load updated dashboard statistics using any currently applied filters. Displays a loading overlay during the operation and tracks the refresh as an active operation.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'dashboard_refresh'
@@ -3167,7 +3335,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Dashboard refresh error: {e}")
 
     def load_bans_table_async(self):
-        """Load bans table asynchronously"""
+        """
+        Initiate asynchronous loading of ban records into the bans table.
+        
+        This method disables the bans table UI, displays a loading overlay, and enqueues a database operation to fetch ban records using current filters if applied. The operation is handled by the database worker thread to prevent UI blocking.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'load_bans'
@@ -3187,7 +3359,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Bans table load error: {e}")
 
     def load_logs_table_async(self, filters=None):
-        """Load logs table asynchronously"""
+        """
+        Initiate asynchronous loading of the activity logs table with optional filters.
+        
+        If filters are not provided, the current log filters are used. Disables the logs table and displays a loading overlay during the operation. The logs are loaded in a background thread to keep the UI responsive.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'load_logs'
@@ -3209,7 +3385,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Logs table load error: {e}")
 
     def verify_latest_tanker_async(self):
-        """Verify latest tanker asynchronously"""
+        """
+        Initiate asynchronous verification of the latest tanker entry.
+        
+        This method enqueues a verification operation for the most recent tanker, updating the status bar and tracking the operation by a unique ID. The verification is performed in a background thread to keep the UI responsive.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'verify_latest'
@@ -3224,7 +3404,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Verification error: {e}")
 
     def verify_manual_tanker_async(self):
-        """Verify manually entered tanker asynchronously"""
+        """
+        Initiate asynchronous verification of a manually entered tanker number.
+        
+        If the tanker number input is empty, displays a warning message and aborts the operation. Otherwise, enqueues a verification operation to the database worker thread and updates the status bar to indicate progress.
+        """
         try:
             if not hasattr(self, 'manual_tanker_input'):
                 return
@@ -3248,7 +3432,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Manual verification error: {e}")
 
     def test_server_connection_async(self):
-        """Test server connection asynchronously - CORRECTED"""
+        """
+        Initiate an asynchronous test of the server database connection.
+        
+        This method enqueues a server connection test operation to the database worker thread, updates the UI to indicate the test is in progress, and logs the initiation. Errors during initiation are logged and reflected in the server status label.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'test_server'
@@ -3269,7 +3457,11 @@ class MainWindow(QMainWindow):
                 self.server_status_label.setText(f"Server Status: ❌ Error: {str(e)[:30]}")
 
     def test_local_connection_async(self):
-        """Test local connection asynchronously - CORRECTED"""
+        """
+        Initiate an asynchronous test of the local database connection.
+        
+        This method enqueues a local connection test operation to the database worker thread, updates the UI to indicate testing status, and logs the initiation. Any exceptions encountered during setup are logged and reflected in the UI.
+        """
         try:
             operation_id = self.generate_operation_id()
             self.active_operations[operation_id] = 'test_local'
@@ -3289,12 +3481,21 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'local_status_label'):
                 self.local_status_label.setText(f"Local Status: ❌ Error: {str(e)[:30]}")
     def on_operation_started(self, operation_id, description):
-        """Handle operation started signal"""
+        """
+        Handles the signal indicating the start of a database operation and updates the status bar with the operation description.
+        """
         logger.info(f"Operation started: {operation_id} - {description}")
         self.status_bar.showMessage(description)
 
     def on_operation_progress(self, operation_id, percentage, message):
-        """Handle operation progress signal"""
+        """
+        Updates the loading overlay and status bar to reflect the progress of an ongoing asynchronous database operation.
+        
+        Parameters:
+            operation_id: The unique identifier of the operation in progress.
+            percentage: The completion percentage of the operation.
+            message: A descriptive message about the current progress.
+        """
         operation_type = self.active_operations.get(operation_id)
         if operation_type:
             if operation_type in ['dashboard_refresh', 'initial_dashboard_load']:
@@ -3311,14 +3512,22 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"{message} ({percentage}%)")
 
     def on_operation_completed(self, operation_id, result):
-        """Handle operation completed signal"""
+        """
+        Handles the completion of a database operation by updating the status bar and logging the result.
+        
+        Parameters:
+            operation_id: The unique identifier of the completed operation.
+            result: The result data returned by the operation.
+        """
         operation_type = self.active_operations.pop(operation_id, None)
         if operation_type:
             logger.info(f"Operation completed: {operation_type}")
             self.status_bar.showMessage(f"{operation_type.replace('_', ' ').title()} completed successfully")
 
     def on_operation_error(self, operation_id, error_message):
-        """Handle operation error signal"""
+        """
+        Handles errors from asynchronous database operations by hiding loading overlays, re-enabling relevant tables, updating the status bar, and displaying a critical error message to the user.
+        """
         operation_type = self.active_operations.pop(operation_id, None)
 
         logger.error(f"Operation error: {operation_type} - {error_message}")
@@ -3340,7 +3549,12 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, error_title, f"Operation failed:\n\n{error_message}")
 
     def on_bans_loaded(self, bans_data):
-        """Handle bans loaded signal"""
+        """
+        Handles the completion of the bans data loading operation by updating the bans table and hiding the loading overlay.
+        
+        Parameters:
+            bans_data (list): List of ban records to populate the bans table.
+        """
         try:
             if 'bans' in self.loading_overlays:
                 self.loading_overlays['bans'].hide_loading()
@@ -3357,7 +3571,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling bans loaded: {e}")
 
     def on_logs_loaded(self, logs_data):
-        """Handle logs loaded signal"""
+        """
+        Handles the completion of asynchronous log data loading by updating the logs table and hiding the loading overlay.
+        
+        Parameters:
+            logs_data (list): List of log records to populate the logs table.
+        """
         try:
             if 'logs' in self.loading_overlays:
                 self.loading_overlays['logs'].hide_loading()
@@ -3374,7 +3593,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling logs loaded: {e}")
 
     def on_users_loaded(self, users_data):
-        """Handle users loaded signal"""
+        """
+        Handles the completion of asynchronous user data loading and updates the users table UI.
+        
+        Parameters:
+            users_data (list): List of user records loaded from the database.
+        """
         try:
             if hasattr(self, 'users_table'):
                 self.users_table.setEnabled(True)
@@ -3390,7 +3614,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling users loaded: {e}")
 
     def on_statistics_loaded(self, stats_data):
-        """Handle statistics loaded signal"""
+        """
+        Handles the completion of asynchronous statistics loading and updates the dashboard with the new data.
+        
+        Parameters:
+            stats_data (dict): The loaded statistics data to be displayed on the dashboard.
+        """
         try:
             if 'dashboard' in self.loading_overlays:
                 self.loading_overlays['dashboard'].hide_loading()
@@ -3404,7 +3633,14 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling statistics loaded: {e}")
 
     def on_verification_completed(self, status, reason, details):
-        """Handle verification completed signal"""
+        """
+        Handles the completion of a tanker verification operation by updating the relevant UI, displaying status messages, and playing warning sounds if required.
+        
+        Parameters:
+            status (str): The result status of the verification (e.g., "success", "failed").
+            reason (str): The reason or message associated with the verification result.
+            details (dict): Additional details about the verification, including tanker number and flags for sound playback.
+        """
         try:
             operation_type = None
             for op_id, op_type in self.active_operations.items():
@@ -3435,7 +3671,14 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling verification completed: {e}")
 
     def on_connection_tested(self, connection_type, success, message):
-        """Handle connection tested signal"""
+        """
+        Updates the UI and status bar based on the result of a server or local database connection test.
+        
+        Parameters:
+            connection_type (str): Type of connection tested ('server' or 'local').
+            success (bool): Whether the connection test succeeded.
+            message (str): Additional information about the connection test result.
+        """
         try:
             if connection_type == 'server':
                 if hasattr(self, 'server_status_label'):
@@ -3464,7 +3707,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error handling connection tested: {e}")
 
     def get_current_log_filters(self):
-        """Get current log filters"""
+        """
+        Retrieve the currently applied log filters as a dictionary.
+        
+        Returns:
+            dict: A dictionary containing 'start_date' and 'end_date' keys if the corresponding attributes exist.
+        """
         filters = {}
         if hasattr(self, 'log_start_date') and hasattr(self, 'log_end_date'):
             filters['start_date'] = self.log_start_date.date().toString("yyyy-MM-dd")
@@ -3472,7 +3720,12 @@ class MainWindow(QMainWindow):
         return filters
 
     def populate_bans_table_from_data(self, bans_data):
-        """Populate bans table from loaded data - customize this for your table structure"""
+        """
+        Populate the bans table widget with the provided ban records data.
+        
+        Parameters:
+            bans_data (list): A list of ban record rows to display in the table.
+        """
         if hasattr(self, 'bans_table'):
             # Clear existing data
             self.bans_table.setRowCount(0)
@@ -3487,7 +3740,12 @@ class MainWindow(QMainWindow):
                     self.bans_table.setItem(row, col, item)
 
     def populate_logs_table_from_data(self, logs_data):
-        """Populate logs table from loaded data - customize this for your table structure"""
+        """
+        Populate the logs table widget with the provided log data.
+        
+        Parameters:
+            logs_data (list): A list of log records, where each record is an iterable of values for the table columns.
+        """
         if hasattr(self, 'logs_table'):
             self.logs_table.setRowCount(0)
 
@@ -3499,13 +3757,23 @@ class MainWindow(QMainWindow):
                     self.logs_table.setItem(row, col, item)
 
     def update_dashboard_with_statistics(self, stats_data):
-        """Update dashboard with statistics data - use your existing logic"""
+        """
+        Update the dashboard UI using the provided statistics data.
+        
+        Parameters:
+            stats_data (dict): Pre-loaded statistics to display on the dashboard.
+        """
         # Use your existing dashboard update methods here
         # This is where you'd call your existing refresh_dashboard logic
         # but with the pre-loaded stats_data instead of loading it again
         pass
 
     def create_modern_content_area(self):
+        """
+        Create and configure the main content area with a modern UI layout and stacked pages.
+        
+        Initializes the content area frame and layout, sets up a QStackedWidget containing the dashboard, verification, manual verify, bans, and logs pages, and conditionally adds the settings page based on user role. The stacked widget is added to the content layout for dynamic page switching.
+        """
         self.content_area = QFrame()
         self.content_area.setObjectName("modernContentArea")
 
@@ -5362,7 +5630,11 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Dashboard filter error: {e}")
 
     def clear_dashboard_filter(self):
-        """Clear dashboard filter with proper state management"""
+        """
+        Clears all filters applied to the dashboard and resets filter-related UI elements to their default state.
+        
+        Resets the date range, updates the filter status display, and refreshes the dashboard to show all data.
+        """
         try:
             self.dashboard_filters_applied = False
             self.current_dashboard_filters = None
@@ -5381,11 +5653,18 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing dashboard filter: {e}")
 
     def refresh_dashboard(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects dashboard refresh requests to the asynchronous version for backward compatibility.
+        """
         self.refresh_dashboard_async()
 
     def load_recent_ban_records(self, filters=None):
-        """Load recent ban records from ban_records table"""
+        """
+        Populate the recent bans table with up to 10 of the most recent ban records, applying optional filters and color-coding ban types.
+        
+        Parameters:
+            filters (dict, optional): Criteria to filter ban records before displaying.
+        """
         try:
             recent_bans = self.db.get_all_bans(filters)[:10]
             self.recent_bans_table.setRowCount(0)
@@ -5433,7 +5712,11 @@ class MainWindow(QMainWindow):
             return str(date_str)
 
     def load_recent_activity(self):
-        """Load recent activity with improved error handling"""
+        """
+        Populates the recent activity table with the latest log entries, applying modern formatting and color coding for status.
+        
+        Retrieves the most recent logs, formats timestamps for readability, truncates long reasons, and color-codes status entries for visual clarity. Handles errors gracefully and displays fallback values for missing data.
+        """
         try:
             logs = self.db.get_recent_logs(15)
             self.recent_table.setRowCount(0)
@@ -5484,15 +5767,29 @@ class MainWindow(QMainWindow):
             logger.error(f"Error loading recent activity: {e}")
 
     def verify_latest_tanker(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects to the asynchronous method for verifying the latest tanker.
+        
+        This legacy method is retained for backward compatibility and calls the non-blocking async version.
+        """
         self.verify_latest_tanker_async()
 
     def verify_manual_tanker(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects manual tanker verification to the asynchronous implementation.
+        """
         self.verify_manual_tanker_async()
 
     def update_auto_verification_display(self, tanker_number, status, reason, details):
-        """Update auto verification display with modern styling"""
+        """
+        Updates the auto verification UI section with the provided tanker information, status, and reason, applying modern styling and displaying voice note controls if available.
+        
+        Parameters:
+            tanker_number (str): The vehicle's tanker number to display.
+            status (str): The verification status to show.
+            reason (str): The reason for the verification result.
+            details (dict): Additional details, possibly including a ban record with a voice recording.
+        """
         try:
             self.auto_tanker_info_label.setText(f"🚛 Vehicle: {tanker_number}")
             self.auto_status_label.setText(status)
@@ -5935,7 +6232,9 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage(f"Log filter error: {e}")
 
     def clear_log_filters(self):
-        """Clear log filters with proper state management"""
+        """
+        Reset all log filters to their default values and reload the logs table.
+        """
         try:
             self.log_start_date.setDate(QDate.currentDate().addDays(-7))
             self.log_end_date.setDate(QDate.currentDate())
@@ -5954,10 +6253,18 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing log filters: {e}")
 
     def load_bans_table(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects to the asynchronous method for loading the bans table.
+        """
         self.load_bans_table_async()
     def play_ban_voice(self, voice_data, tanker_number):
-        """Play voice note from ban management table"""
+        """
+        Play a voice note associated with a ban record for a specified tanker.
+        
+        Parameters:
+            voice_data (bytes): The audio data to play.
+            tanker_number (str): The tanker number associated with the voice note.
+        """
         if voice_data and self.audio_recorder:
             try:
                 self.status_bar.showMessage(f"Playing voice note for {tanker_number}...")
@@ -6016,7 +6323,11 @@ class MainWindow(QMainWindow):
 
     # Navigation methods
     def show_dashboard(self):
-        """Show dashboard page with async loading"""
+        """
+        Displays the dashboard page and triggers asynchronous loading of dashboard data.
+        
+        Switches the main content area to the dashboard and initiates an asynchronous refresh of dashboard statistics and tables.
+        """
         try:
             if hasattr(self, 'stacked_widget') and hasattr(self, 'dashboard_page'):
                 self.stacked_widget.setCurrentWidget(self.dashboard_page)
@@ -6027,7 +6338,11 @@ class MainWindow(QMainWindow):
 
 
     def show_verification(self):
-        """Show auto verification page"""
+        """
+        Switches the main content area to the auto verification page and updates the status bar message.
+        
+        Displays the auto verification interface to the user. Logs an error if the page cannot be shown.
+        """
         try:
             self.stacked_widget.setCurrentWidget(self.verification_page)
             self.status_bar.showMessage("Auto verification page loaded")
@@ -6035,7 +6350,11 @@ class MainWindow(QMainWindow):
             logger.error(f"Error showing verification page: {e}")
 
     def show_manual_verify(self):
-        """Show manual verification page"""
+        """
+        Displays the manual verification page in the main window.
+        
+        Switches the content area to the manual verification interface and updates the status bar message. Logs an error if the page cannot be displayed.
+        """
         try:
             self.stacked_widget.setCurrentWidget(self.manual_verify_page)
             self.status_bar.showMessage("Manual verification page loaded")
@@ -6043,7 +6362,11 @@ class MainWindow(QMainWindow):
             logger.error(f"Error showing manual verify page: {e}")
 
     def show_bans(self):
-        """Show ban management page with async loading"""
+        """
+        Displays the ban management page and initiates asynchronous loading of ban records.
+        
+        Switches the main content area to the ban management interface, resets any applied filters, and starts loading ban data asynchronously. Updates the status bar to indicate the page has loaded.
+        """
         try:
             if hasattr(self, 'stacked_widget') and hasattr(self, 'bans_page'):
                 self.stacked_widget.setCurrentWidget(self.bans_page)
@@ -6055,7 +6378,11 @@ class MainWindow(QMainWindow):
             logger.error(f"Error showing bans page: {e}")
 
     def show_logs(self):
-        """Show activity logs page with async loading"""
+        """
+        Displays the activity logs page and initiates asynchronous loading of log data.
+        
+        Shows the logs page in the main window and triggers an asynchronous operation to load activity logs. Updates the status bar to indicate the page has loaded.
+        """
         try:
             if hasattr(self, 'stacked_widget') and hasattr(self, 'logs_page'):
                 self.stacked_widget.setCurrentWidget(self.logs_page)
@@ -6098,7 +6425,11 @@ class MainWindow(QMainWindow):
             self.server_path_input.setText(file_path)
 
     def browse_local_db(self):
-        """Browse for local database file"""
+        """
+        Opens a file dialog for the user to select a location for the local SQLite database file.
+        
+        If a file is selected, updates the local path input field with the chosen file path.
+        """
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Select Local Database",
             self.config.get('local_sqlite_path', ''),
@@ -6108,14 +6439,20 @@ class MainWindow(QMainWindow):
             self.local_path_input.setText(file_path)
 
     def test_server_connection(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects the legacy server connection test method to the asynchronous implementation.
+        """
         self.test_server_connection_async()
     def test_local_connection(self):
-        """Legacy method redirects to async version"""
+        """
+        Redirects to the asynchronous method for testing the local database connection.
+        """
         self.test_local_connection_async()
 
     def test_all_connections(self):
-        """Test all database connections"""
+        """
+        Tests both the server and local database connections sequentially.
+        """
         self.test_server_connection()
         self.test_local_connection()
 
@@ -6396,7 +6733,9 @@ class MainWindow(QMainWindow):
             logger.debug(f"Auto-verification error: {e}")
 
     def closeEvent(self, event):
-        """Clean shutdown with improved cleanup"""
+        """
+        Handles application shutdown by stopping background threads, timers, audio operations, and hiding loading overlays to ensure a clean exit.
+        """
         try:
             logger.info(f"TDF System shutdown initiated - User: {self.user_info['username']}")
             if hasattr(self, 'db_worker') and self.db_worker:
@@ -6424,7 +6763,11 @@ class MainWindow(QMainWindow):
             logger.error(f"Error during shutdown: {e}")
             event.accept()
 def main():
-    """Main entry point with modern UI and enhanced functionality"""
+    """
+    Launches the Truck Data Flow (TDF) system with a modern UI, initializing configuration, databases, user management, and the main application window.
+    
+    Handles dependency checks, configuration loading, database and user manager initialization, default user creation, user authentication, and main window setup. Displays error dialogs and logs issues if initialization fails at any stage. Returns the application's exit code.
+    """
     try:
         logger.info("TDF SYSTEM - MODERN UI VERSION WITH ENHANCED FUNCTIONALITY STARTING")
         logger.info("Features: Modern Professional Interface, Fixed Filters, Role-based Access Control, Enhanced Accessibility")
