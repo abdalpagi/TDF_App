@@ -62,8 +62,13 @@ logger = logging.getLogger(__name__)
 
 # Default Configuration
 DEFAULT_CONFIG = {
-    "server_db_path": r"C:\Users\abdalbagi.a\Desktop\APPPPNEW\TruckAutoId_copy.accdb",
-    "local_sqlite_path": r"C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db",
+    DEFAULT_CONFIG = {
+-        "server_db_path": r"C:\Users\abdalbagi.a\Desktop\APPPPNEW\TruckAutoId_copy.accdb",
+-        "local_sqlite_path": r"C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db",
++        "server_db_path": os.path.join(os.path.expanduser("~"), "Documents", "TDF", "TruckAutoId.accdb"),
++        "local_sqlite_path": os.path.join(os.path.expanduser("~"), "Documents", "TDF", "tdf_app.db"),
+        "connection_timeout": 3,
+    }
     "connection_timeout": 3,
     "cache_timeout": 5,
     "monitor_interval": 3,
