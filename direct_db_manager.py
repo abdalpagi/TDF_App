@@ -5,8 +5,6 @@ Updated: Modern typography, enhanced visual design, improved accessibility and r
 """
 #coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
 #coderabbitai please prioritize visual clarity, modern layout, and practical usability improvements.
-
-
 import sys
 import os
 import time
@@ -15,6 +13,9 @@ import threading
 import sqlite3
 import json
 import hashlib
+import tempfile
+import wave
+from typing import Optional, Callable
 from PyQt5.QtCore import QThread, pyqtSignal
 import resources
 import queue
@@ -30,7 +31,32 @@ import queue
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject
+from PyQt5.QtWidgets import QProgressBar
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Try to import audio libraries
+AUDIO_AVAILABLE = False
+try:
+    import pyaudio
+    AUDIO_AVAILABLE = True
+    logger.info("PyAudio is available")
+except ImportError:
+    logger.warning("PyAudio not available - audio features will be disabled")
+    pyaudio = None
+
+# Audio configuration
+CHUNK = 1024
+FORMAT = None
+CHANNELS = 1
+RATE = 44100
+RECORD_SECONDS = 30  # Maximum recording time
+
+if AUDIO_AVAILABLE:
+    FORMAT = pyaudio.paInt16
 # Database imports
 try:
     import pyodbc
@@ -1179,27 +1205,34 @@ class DatabaseManager:
             logger.error(f"Error adding ban record: {e}")
             return False
 
-    def get_all_bans(self, filters=None):
-        """Get all bans with improved filtering - Fixed filter logic"""
+    def get_all_bans(self, filters=None, exclude_blob=False):
+        """Get all bans with optional exclusion of BLOB for dashboard display"""
         try:
             with sqlite3.connect(self.sqlite_db, timeout=10) as conn:
                 cursor = conn.cursor()
 
-                query = """
-                    SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
-                           created_by, voice_recording
-                    FROM ban_records 
-                    WHERE is_active = 1
-                """
+                if exclude_blob:
+                    query = """
+                        SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
+                               created_by, voice_filename, created_at
+                        FROM ban_records 
+                        WHERE is_active = 1
+                    """
+                else:
+                    query = """
+                        SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
+                               created_by, voice_recording, voice_filename, created_at
+                        FROM ban_records 
+                        WHERE is_active = 1
+                    """
+
                 params = []
 
                 if filters:
-                    # Fixed: Date filter now works correctly with created_at field
                     if filters.get('start_date') and filters.get('end_date'):
                         query += " AND DATE(created_at) BETWEEN ? AND ?"
                         params.extend([filters['start_date'], filters['end_date']])
 
-                    # Fixed: Text filters now work with partial matches
                     if filters.get('reason'):
                         query += " AND LOWER(ban_reason) LIKE LOWER(?)"
                         params.append(f"%{filters['reason']}%")
@@ -1212,12 +1245,11 @@ class DatabaseManager:
                         query += " AND LOWER(tanker_number) LIKE LOWER(?)"
                         params.append(f"%{filters['tanker_number']}%")
 
-                query += " ORDER BY created_at DESC"
+                query += " ORDER BY created_at DESC LIMIT 10"
+                logger.info(f"Running SQL: {query} with params {params}")
 
                 cursor.execute(query, params)
-                results = cursor.fetchall()
-                logger.info(f"Ban query executed with {len(params)} parameters, returned {len(results)} results")
-                return results
+                return cursor.fetchall()
 
         except Exception as e:
             logger.error(f"Error getting bans: {e}")
@@ -1298,14 +1330,18 @@ class DatabaseManager:
 
                 query = "SELECT ban_type, created_at FROM ban_records WHERE is_active = 1"
                 params = []
+                logger.info(f"🔍 get_ban_statistics - Received filters: {filters}")
 
                 if filters and filters.get('start_date') and filters.get('end_date'):
                     query += " AND DATE(created_at) BETWEEN ? AND ?"
                     params.extend([filters['start_date'], filters['end_date']])
-
+                logger.info(f"🔍 Ban stats query with filter: {query}")
+                logger.info(f"🔍 Ban stats params: {params}")
                 cursor.execute(query, params)
                 results = cursor.fetchall()
-
+                logger.info(f"🔍 Ban stats results count: {len(results)}")
+                if results:
+                    logger.info(f"🔍 Sample dates: {[r[1] for r in results[:3]]}")
                 if not results:
                     return {'total_bans': 0, 'permanent': 0, 'temporary': 0, 'permission': 0, 'reminder': 0, 'active_bans': 0}
 
@@ -1351,13 +1387,16 @@ class DatabaseManager:
 
                 query = "SELECT status FROM logs WHERE status IS NOT NULL"
                 params = []
+                logger.info(f"🔍 get_verification_statistics - Received filters: {filters}")
 
                 if filters and filters.get('start_date') and filters.get('end_date'):
                     query += " AND DATE(timestamp) BETWEEN ? AND ?"
                     params.extend([filters['start_date'], filters['end_date']])
-
+                logger.info(f"🔍 Verify stats query with filter: {query}")
+                logger.info(f"🔍 Verify stats params: {params}")
                 cursor.execute(query, params)
                 results = cursor.fetchall()
+                logger.info(f"🔍 Verify stats results count: {len(results)}")
 
                 if not results:
                     return {'total': 0, 'allowed': 0, 'rejected': 0, 'conditional': 0, 'errors': 0, 'success_rate': 0}
@@ -1394,10 +1433,8 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting verification statistics: {e}")
             return {'total': 0, 'allowed': 0, 'rejected': 0, 'conditional': 0, 'errors': 0, 'success_rate': 0}
-
-
 class ModernLoginDialog(QDialog):
-    """Enhanced login dialog with modern UI design"""
+    """Enhanced login dialog with modern UI design and improved spacing"""
 
     def __init__(self, user_manager):
         super().__init__()
@@ -1412,156 +1449,296 @@ class ModernLoginDialog(QDialog):
         self.setFixedSize(1000, 650)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
+        # Main layout
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Left panel with modern design
+        # Left branding panel
+        left_panel = self.create_branding_panel()
+
+        # Right form panel
+        right_panel = self.create_form_panel()
+
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(right_panel)
+        self.setLayout(main_layout)
+
+        # Set up keyboard shortcuts
+        self.setup_keyboard_shortcuts()
+
+    def create_branding_panel(self):
+        """Create the left branding panel with improved spacing"""
         left_panel = QFrame()
         left_panel.setFixedWidth(450)
         left_panel.setObjectName("leftPanel")
 
         left_layout = QVBoxLayout()
         left_layout.setAlignment(Qt.AlignCenter)
-        left_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        left_layout.setSpacing(int(ModernUITheme.SPACE_4XL.replace('px', '')))
+        left_layout.setContentsMargins(40, 60, 40, 60)
 
-        # Modern logo design
+        # Logo container with better proportions
         logo_container = QFrame()
-        logo_container.setFixedSize(120, 120)
+        logo_container.setFixedSize(140, 140)
         logo_container.setObjectName("logoContainer")
+
         logo_layout = QVBoxLayout(logo_container)
         logo_layout.setContentsMargins(0, 0, 0, 0)
+        logo_layout.setAlignment(Qt.AlignCenter)
 
         logo_label = QLabel("🚛")
         logo_label.setAlignment(Qt.AlignCenter)
-        logo_label.setStyleSheet(f"font-size: {ModernUITheme.FONT_SIZE_5XL}; color: white; background: transparent;")
+        logo_label.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_5XL}; 
+            color: white; 
+            background: transparent;
+        """)
         logo_layout.addWidget(logo_label)
 
-        welcome_label = QLabel("TDF System")
-        welcome_label.setAlignment(Qt.AlignCenter)
-        welcome_label.setStyleSheet(f"""
+        # Brand title with improved typography
+        brand_title = QLabel("TDF System")
+        brand_title.setAlignment(Qt.AlignCenter)
+        brand_title.setStyleSheet(f"""
             font-size: {ModernUITheme.FONT_SIZE_4XL}; 
             font-weight: 700; 
             color: white; 
-            margin-bottom: {ModernUITheme.SPACE_MD};
-            letter-spacing: -0.5px;
+            letter-spacing: -0.8px;
+            margin-bottom: {ModernUITheme.SPACE_LG};
         """)
 
-        subtitle_label = QLabel("Professional Vehicle Management\nModern UI • Enhanced Security • Real-time Monitoring")
-        subtitle_label.setAlignment(Qt.AlignCenter)
-        subtitle_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_LG}; 
+        # Subtitle with better line spacing
+        subtitle = QLabel("Professional Vehicle Management")
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_XL}; 
             color: rgba(255, 255, 255, 0.9); 
-            line-height: 1.6;
-            font-weight: 400;
+            font-weight: 500;
+            margin-bottom: {ModernUITheme.SPACE_2XL};
         """)
 
-        feature_label = QLabel(
-            "✓ Fixed Filters & Enhanced Search\n✓ Role-Based Access Control\n✓ Database Configuration\n✓ Modern Professional Interface")
-        feature_label.setAlignment(Qt.AlignCenter)
-        feature_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            color: rgba(255, 255, 255, 0.8); 
-            line-height: 1.8;
-            margin-top: {ModernUITheme.SPACE_2XL};
+        # Feature highlights with icons
+        features = QLabel(
+            "✨ Modern Professional Interface\n🔒 Enhanced Security\n📊 Real-time Monitoring\n🔍 Advanced Search & Filters")
+        features.setAlignment(Qt.AlignCenter)
+        features.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_BASE}; 
+            color: rgba(255, 255, 255, 0.85); 
+            line-height: 2.0;
             font-weight: 400;
         """)
 
         left_layout.addWidget(logo_container)
-        left_layout.addWidget(welcome_label)
-        left_layout.addWidget(subtitle_label)
-        left_layout.addWidget(feature_label)
-        left_panel.setLayout(left_layout)
+        left_layout.addWidget(brand_title)
+        left_layout.addWidget(subtitle)
+        left_layout.addWidget(features)
+        left_layout.addStretch()
 
-        # Right panel with modern form design
+        left_panel.setLayout(left_layout)
+        return left_panel
+
+    def create_form_panel(self):
+        """Create the right form panel with improved layout and spacing"""
         right_panel = QFrame()
         right_panel.setObjectName("rightPanel")
 
         right_layout = QVBoxLayout()
-        right_layout.setAlignment(Qt.AlignCenter)
+        right_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
         right_layout.setContentsMargins(60, 40, 60, 40)
 
-        # Close button
+        # Header with close button
+        header = self.create_header()
+
+        # Main form content
+        form_content = self.create_form_content()
+
+        right_layout.addWidget(header)
+        right_layout.addStretch(1)
+        right_layout.addWidget(form_content)
+        right_layout.addStretch(2)
+
+        right_panel.setLayout(right_layout)
+        return right_panel
+
+    def create_header(self):
+        """Create header with close button"""
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        header_layout.addStretch()
+
+        # Close button with better styling
         close_btn = QPushButton("✕")
-        close_btn.setFixedSize(40, 40)
+        close_btn.setFixedSize(44, 44)
         close_btn.setObjectName("closeButton")
         close_btn.clicked.connect(self.reject)
+        close_btn.setToolTip("Close")
 
-        header_layout = QHBoxLayout()
-        header_layout.addStretch()
         header_layout.addWidget(close_btn)
+        return header_widget
 
-        login_title = QLabel("Welcome Back")
-        login_title.setAlignment(Qt.AlignCenter)
-        login_title.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_3XL}; 
-            color: {ModernUITheme.TEXT_PRIMARY}; 
-            margin-bottom: {ModernUITheme.SPACE_4XL};
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        """)
+    def create_form_content(self):
+        """Create the main form content with improved spacing and layout"""
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+        content_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Modern form inputs
-        form_container = QFrame()
-        form_container.setObjectName("formContainer")
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        # Welcome title
+        title = QLabel("Welcome Back")
+        title.setAlignment(Qt.AlignCenter)
+        title.setObjectName("welcomeTitle")
+
+        # Form container
+        form_container = self.create_form_inputs()
+
+        # Action buttons
+        actions_container = self.create_action_buttons()
+
+        # Error display
+        self.error_label = QLabel()
+        self.error_label.setObjectName("errorLabel")
+        self.error_label.setWordWrap(True)
+        self.error_label.setAlignment(Qt.AlignCenter)
+        self.error_label.hide()
+
+        content_layout.addWidget(title)
+        content_layout.addWidget(form_container)
+        content_layout.addWidget(actions_container)
+        content_layout.addWidget(self.error_label)
+
+        return content_widget
+
+    def create_form_inputs(self):
+        """Create form inputs with improved spacing and visual hierarchy"""
+        form_widget = QWidget()
+        form_layout = QVBoxLayout(form_widget)
+        form_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
         form_layout.setContentsMargins(0, 0, 0, 0)
 
         # Username field
-        username_label = QLabel("Username")
-        username_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            font-weight: 600; 
-            color: {ModernUITheme.TEXT_SECONDARY};
-            margin-bottom: {ModernUITheme.SPACE_SM};
-        """)
+        username_group = self.create_input_group(
+            label_text="Username",
+            placeholder="Enter your username",
+            icon="👤",
+            default_value="admin"
+        )
+        self.username_input = username_group['input']
 
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter your username")
-        self.username_input.setObjectName("modernInput")
-        self.username_input.setText("admin")  # Default for testing
+        # Password field
+        password_group = self.create_password_input_group()
+        self.password_input = password_group['input']
+        self.toggle_password_btn = password_group['toggle_btn']
 
-        # Add username icon
-        username_container = QFrame()
-        username_container.setObjectName("inputContainer")
-        username_layout = QHBoxLayout(username_container)
-        username_layout.setContentsMargins(15, 0, 15, 0)
-        username_icon = QLabel("👤")
-        username_icon.setStyleSheet("font-size: 16px;")
-        username_layout.addWidget(username_icon)
-        username_layout.addWidget(self.username_input)
-        username_layout.setSpacing(10)
+        # Remember me section
+        remember_section = self.create_remember_section()
 
-        password_label = QLabel("Password")
-        password_label.setStyleSheet(f"""
-                    font-size: {ModernUITheme.FONT_SIZE_SM}; 
-                    font-weight: 600; 
-                    color: {ModernUITheme.TEXT_SECONDARY};
-                    margin-bottom: {ModernUITheme.SPACE_SM};
-                """)
+        form_layout.addWidget(username_group['widget'])
+        form_layout.addWidget(password_group['widget'])
+        form_layout.addWidget(remember_section)
 
-        # Create password container
-        password_container = QFrame()
-        password_container.setObjectName("inputContainer")
-        password_layout = QHBoxLayout(password_container)
-        password_layout.setContentsMargins(15, 0, 15, 0)
+        return form_widget
 
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("Enter your password")
-        self.password_input.setObjectName("modernInput")
-        self.password_input.setText("admin123")
+    def create_input_group(self, label_text, placeholder, icon, default_value=""):
+        """Create a labeled input group with consistent spacing"""
+        group_widget = QWidget()
+        group_layout = QVBoxLayout(group_widget)
+        group_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        group_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Password toggle button
-        self.toggle_password_btn = QToolButton()
-        self.toggle_password_btn.setCursor(Qt.PointingHandCursor)
-        self.toggle_password_btn.setFixedSize(30, 30)
-        self.toggle_password_btn.setObjectName("togglePasswordButton")
-        self.toggle_password_btn.clicked.connect(self.toggle_password_visibility)
+        # Label
+        label = QLabel(label_text)
+        label.setObjectName("inputLabel")
 
-        password_layout.addWidget(self.password_input)
-        password_layout.addWidget(self.toggle_password_btn)
+        # Input container
+        container = QFrame()
+        container.setObjectName("inputContainer")
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(20, 0, 20, 0)
+        container_layout.setSpacing(12)
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("inputIcon")
+
+        # Input field
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(placeholder)
+        input_field.setObjectName("modernInput")
+        if default_value:
+            input_field.setText(default_value)
+
+        container_layout.addWidget(icon_label)
+        container_layout.addWidget(input_field)
+
+        group_layout.addWidget(label)
+        group_layout.addWidget(container)
+
+        return {
+            'widget': group_widget,
+            'input': input_field,
+            'container': container
+        }
+
+    def create_password_input_group(self):
+        """Create password input with toggle visibility button"""
+        group_widget = QWidget()
+        group_layout = QVBoxLayout(group_widget)
+        group_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        group_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Label
+        label = QLabel("Password")
+        label.setObjectName("inputLabel")
+
+        # Input container
+        container = QFrame()
+        container.setObjectName("inputContainer")
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(20, 0, 20, 0)
+        container_layout.setSpacing(12)
+
+        # Lock icon
+        icon_label = QLabel("🔒")
+        icon_label.setObjectName("inputIcon")
+
+        # Password input
+        password_input = QLineEdit()
+        password_input.setEchoMode(QLineEdit.Password)
+        password_input.setPlaceholderText("Enter your password")
+        password_input.setObjectName("modernInput")
+        password_input.setText("")
+
+        # Toggle button
+        toggle_btn = QToolButton()
+        toggle_btn.setText("👁")
+        toggle_btn.setObjectName("togglePasswordButton")
+        toggle_btn.setFixedSize(32, 32)
+        toggle_btn.setCursor(Qt.PointingHandCursor)
+        toggle_btn.clicked.connect(self.toggle_password_visibility)
+        toggle_btn.setToolTip("Show/Hide password")
+
+        container_layout.addWidget(icon_label)
+        container_layout.addWidget(password_input)
+        container_layout.addWidget(toggle_btn)
+
+        group_layout.addWidget(label)
+        group_layout.addWidget(container)
+
+        return {
+            'widget': group_widget,
+            'input': password_input,
+            'toggle_btn': toggle_btn
+        }
+
+    def create_remember_section(self):
+        """Create remember me and forgot password section"""
+        section_widget = QWidget()
+        section_layout = QHBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
         # Remember me checkbox
         remember_me = QCheckBox("Remember me")
         remember_me.setObjectName("rememberCheckbox")
@@ -1569,260 +1746,323 @@ class ModernLoginDialog(QDialog):
 
         # Forgot password link
         forgot_password = QLabel(
-            "<a href='#' style='text-decoration:none; color: " + ModernUITheme.PRIMARY + ";'>Forgot password?</a>")
+            f"<a href='#' style='text-decoration:none; color: {ModernUITheme.PRIMARY};'>Forgot password?</a>")
+        forgot_password.setObjectName("forgotPasswordLink")
         forgot_password.setCursor(Qt.PointingHandCursor)
         forgot_password.setOpenExternalLinks(False)
         forgot_password.linkActivated.connect(self.show_password_reset)
 
-        # Remember me + Forgot password layout
-        remember_layout = QHBoxLayout()
-        remember_layout.addWidget(remember_me)
-        remember_layout.addStretch()
-        remember_layout.addWidget(forgot_password)
+        section_layout.addWidget(remember_me)
+        section_layout.addStretch()
+        section_layout.addWidget(forgot_password)
 
-        # Login button with loading animation
+        return section_widget
+
+    def create_action_buttons(self):
+        """Create action buttons with loading state"""
+        actions_widget = QWidget()
+        actions_layout = QVBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(0, 0, 0, 0)
+        actions_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Login button container for centering
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(15)
+
+        # Loading spinner (hidden by default)
+        self.loading_spinner = QLabel()
+        self.loading_spinner.setFixedSize(24, 24)
+        self.loading_spinner.setObjectName("loadingSpinner")
+        self.loading_spinner.hide()
+
+        # Login button
         self.login_btn = QPushButton("Sign In")
         self.login_btn.setObjectName("primaryButton")
         self.login_btn.clicked.connect(self.login)
         self.login_btn.setDefault(True)
 
-        # Create loading spinner (hidden by default)
-        self.loading_spinner = QLabel()
-        self.loading_spinner.setFixedSize(20, 20)
-        self.loading_spinner.setObjectName("loadingSpinner")
-        self.loading_spinner.hide()
-
-        # Button layout to contain both button and spinner
-        button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(self.loading_spinner)
         button_layout.addWidget(self.login_btn)
         button_layout.addStretch()
-        button_layout.setSpacing(15)
 
-        # Error message label
-        self.error_label = QLabel()
-        self.error_label.setObjectName("errorLabel")
-        self.error_label.setWordWrap(True)
-        self.error_label.setAlignment(Qt.AlignCenter)
+        actions_layout.addWidget(button_container)
+
+        return actions_widget
+
+    def setup_keyboard_shortcuts(self):
+        """Set up keyboard shortcuts for better accessibility"""
+        self.password_input.returnPressed.connect(self.login)
+        self.username_input.returnPressed.connect(self.password_input.setFocus)
+
+        # ESC to close
+        escape_shortcut = QShortcut(QKeySequence("Escape"), self)
+        escape_shortcut.activated.connect(self.reject)
+
+    def toggle_password_visibility(self):
+        """Toggle password visibility with improved visual feedback"""
+        self.is_password_visible = not self.is_password_visible
+        if self.is_password_visible:
+            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.toggle_password_btn.setText("🙈")
+            self.toggle_password_btn.setToolTip("Hide password")
+        else:
+            self.password_input.setEchoMode(QLineEdit.Password)
+            self.toggle_password_btn.setText("👁")
+            self.toggle_password_btn.setToolTip("Show password")
+
+    def show_password_reset(self):
+        """Show password reset dialog"""
+        QMessageBox.information(
+            self,
+            "Password Reset",
+            "Password reset functionality would be implemented here.\n\n"
+            "For now, please contact your system administrator.",
+            QMessageBox.Ok
+        )
+
+    def login(self):
+        """Handle login with improved validation and error handling"""
+        username = self.username_input.text().strip()
+        password = self.password_input.text().strip()
+
+        # Validation
+        if not username:
+            self.show_error("Please enter your username")
+            self.username_input.setFocus()
+            return
+        if not password:
+            self.show_error("Please enter your password")
+            self.password_input.setFocus()
+            return
+
+        # Clear previous errors
         self.error_label.hide()
 
-        form_layout.addWidget(username_label)
-        form_layout.addWidget(username_container)
-        form_layout.addWidget(password_label)
-        form_layout.addWidget(password_container)
-        form_layout.addLayout(remember_layout)
-        form_layout.addLayout(button_layout)
-        form_layout.addWidget(self.error_label)
+        # Show loading state
+        self.set_loading(True)
 
-        # Info section with modern styling
-        info_container = QFrame()
-        info_container.setObjectName("infoContainer")
-        info_layout = QVBoxLayout(info_container)
-        info_layout.setSpacing(10)
+        try:
+            # Authenticate user
+            self.user_info = self.user_manager.authenticate_user(username, password)
 
-        info_label = QLabel("Default Credentials")
-        info_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            font-weight: 600; 
-            color: {ModernUITheme.TEXT_SECONDARY};
-            margin-bottom: {ModernUITheme.SPACE_SM};
-        """)
+            if self.user_info:
+                logger.info(f"Login successful for: {username}")
+                self.accept()
+            else:
+                # Enhanced error reporting
+                error_msg = self.get_detailed_error_message(username)
+                self.show_error(error_msg)
+                logger.warning(f"Login failed for user: {username}")
 
-        credentials_label = QLabel("admin / admin123 • supervisor / supervisor123 • operator / operator123")
-        credentials_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_XS}; 
-            color: {ModernUITheme.TEXT_MUTED}; 
-            font-family: {ModernUITheme.FONT_FAMILY_MONO};
-            background-color: {ModernUITheme.SURFACE};
-            padding: {ModernUITheme.SPACE_SM};
-            border-radius: {ModernUITheme.RADIUS_SM};
-            border: 1px solid {ModernUITheme.BORDER_LIGHT};
-        """)
+        except Exception as e:
+            error_msg = f"Login error: {str(e)}"
+            logger.error(f"Login exception for {username}: {e}")
+            self.show_error(error_msg)
 
-        role_info_label = QLabel("Operator: Basic access • Supervisor: Settings access • Admin: Full access")
-        role_info_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_XS}; 
-            color: {ModernUITheme.TEXT_MUTED}; 
-            margin-top: {ModernUITheme.SPACE_SM};
-        """)
+        finally:
+            self.set_loading(False)
 
-        # Reset database button with modern styling
-        reset_btn = QPushButton("🔄 Reset Database")
-        reset_btn.setObjectName("secondaryButton")
-        reset_btn.setToolTip("Reset user database and recreate default users")
-        reset_btn.clicked.connect(self.reset_user_database)
+    def get_detailed_error_message(self, username):
+        """Get detailed error message based on user status"""
+        try:
+            with sqlite3.connect(self.user_manager.db_path, timeout=10) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT username, is_active FROM users WHERE username = ?", (username,))
+                user_check = cursor.fetchone()
 
-        info_layout.addWidget(info_label)
-        info_layout.addWidget(credentials_label)
-        info_layout.addWidget(role_info_label)
-        info_layout.addWidget(reset_btn)
+                if user_check:
+                    if user_check[1] == 0:
+                        return f"Account '{username}' is inactive. Please contact administrator."
+                    else:
+                        return f"Invalid password for user '{username}'"
+                else:
+                    return f"User '{username}' not found"
+        except Exception as e:
+            logger.error(f"Error checking user existence: {e}")
+            return f"Authentication failed for '{username}'"
 
-        right_layout.addLayout(header_layout)
-        right_layout.addWidget(login_title)
-        right_layout.addWidget(form_container)
-        right_layout.addStretch()
-        right_layout.addWidget(info_container)
-        right_panel.setLayout(right_layout)
+    def show_error(self, message):
+        """Show error message with animation effect"""
+        self.error_label.setText(message)
+        self.error_label.show()
 
-        main_layout.addWidget(left_panel)
-        main_layout.addWidget(right_panel)
-        self.setLayout(main_layout)
+        # Optional: Add a shake animation effect (requires QPropertyAnimation)
+        # self.shake_error_label()
 
-        self.password_input.returnPressed.connect(self.login)
+    def set_loading(self, loading):
+        """Set loading state with visual feedback"""
+        if loading:
+            self.login_btn.setText("Authenticating...")
+            self.login_btn.setEnabled(False)
+            self.loading_spinner.show()
+            # Disable inputs during authentication
+            self.username_input.setEnabled(False)
+            self.password_input.setEnabled(False)
+        else:
+            self.login_btn.setText("Sign In")
+            self.login_btn.setEnabled(True)
+            self.loading_spinner.hide()
+            # Re-enable inputs
+            self.username_input.setEnabled(True)
+            self.password_input.setEnabled(True)
+
+        QApplication.processEvents()
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
 
-            #leftPanel {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                    stop:0 {ModernUITheme.PRIMARY}, stop:1 {ModernUITheme.PRIMARY_LIGHT});
-                border-top-left-radius: {ModernUITheme.RADIUS_XL};
-                border-bottom-left-radius: {ModernUITheme.RADIUS_XL};
-            }}
+               #leftPanel {{
+                   background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                       stop:0 {ModernUITheme.PRIMARY}, stop:1 {ModernUITheme.PRIMARY_LIGHT});
+                   border-top-left-radius: {ModernUITheme.RADIUS_XL};
+                   border-bottom-left-radius: {ModernUITheme.RADIUS_XL};
+               }}
 
-            #logoContainer {{
-                background-color: rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_XL};
-                border: 2px solid rgba(255, 255, 255, 0.2);
-            }}
+               #logoContainer {{
+                   background-color: rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_XL};
+                   border: 2px solid rgba(255, 255, 255, 0.2);
+               }}
 
-            #rightPanel {{
-                background-color: {ModernUITheme.BACKGROUND};
-                border-top-right-radius: {ModernUITheme.RADIUS_XL};
-                border-bottom-right-radius: {ModernUITheme.RADIUS_XL};
-            }}
+               #rightPanel {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   border-top-right-radius: {ModernUITheme.RADIUS_XL};
+                   border-bottom-right-radius: {ModernUITheme.RADIUS_XL};
+               }}
 
-            #closeButton {{
-                background-color: transparent;
-                border: none;
-                color: {ModernUITheme.TEXT_MUTED};
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                font-weight: bold;
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
+               #closeButton {{
+                   background-color: transparent;
+                   border: none;
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   font-weight: bold;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
 
-            #closeButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-            }}
+               #closeButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+               }}
 
-            #formContainer {{
-                background-color: transparent;
-            }}
+               #formContainer {{
+                   background-color: transparent;
+               }}
 
-            #inputContainer {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
+               #inputContainer {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
 
-            #modernInput {{
-                border: none;
-                padding: {ModernUITheme.SPACE_LG} 0;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
+               #modernInput {{
+                   border: none;
+                   padding: {ModernUITheme.SPACE_LG} 0;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
 
-            #modernInput:focus {{
-                outline: none;
-            }}
+               #modernInput:focus {{
+                   outline: none;
+               }}
 
-            #inputContainer:focus-within {{
-                border-color: {ModernUITheme.PRIMARY};
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            }}
+               #inputContainer:focus-within {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+               }}
 
-            #modernInput::placeholder {{
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
+               #modernInput::placeholder {{
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
 
-            #togglePasswordButton {{
-                background-color: transparent;
-                border: none;
-                padding: 0;
-                margin: 0;
-                color: {ModernUITheme.TEXT_MUTED};
-                qproperty-icon: url(:/icons/eye_closed.svg);
-                qproperty-iconSize: 20px;
-            }}
+               #togglePasswordButton {{
+                   background-color: transparent;
+                   border: none;
+                   padding: 0;
+                   margin: 0;
+                   color: {ModernUITheme.TEXT_MUTED};
+                   qproperty-icon: url(:/icons/eye_closed.svg);
+                   qproperty-iconSize: 20px;
+               }}
 
-            #togglePasswordButton:hover {{
-                color: {ModernUITheme.PRIMARY};
-            }}
+               #togglePasswordButton:hover {{
+                   color: {ModernUITheme.PRIMARY};
+               }}
 
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-weight: 600;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
-                min-height: 48px;
-                min-width: 120px;
-            }}
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-weight: 600;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
+                   min-height: 48px;
+                   min-width: 120px;
+               }}
 
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
 
-            #primaryButton:pressed {{
-                transform: translateY(0px);
-            }}
+               #primaryButton:pressed {{
+                   transform: translateY(0px);
+               }}
 
-            #secondaryButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                margin-top: {ModernUITheme.SPACE_MD};
-            }}
+               #secondaryButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   margin-top: {ModernUITheme.SPACE_MD};
+               }}
 
-            #secondaryButton:hover {{
-                background-color: #B45309;
-            }}
+               #secondaryButton:hover {{
+                   background-color: #B45309;
+               }}
 
-            #infoContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
+               #infoContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
 
-            #errorLabel {{
-                color: {ModernUITheme.DANGER};
-                background-color: rgba(220, 38, 38, 0.1);
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_MD};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                border: 1px solid rgba(220, 38, 38, 0.2);
-            }}
+               #errorLabel {{
+                   color: {ModernUITheme.DANGER};
+                   background-color: rgba(220, 38, 38, 0.1);
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_MD};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   border: 1px solid rgba(220, 38, 38, 0.2);
+               }}
 
-            #loadingSpinner {{
-                border: 2px solid rgba(59, 130, 246, 0.3);
-                border-radius: 50%;
-                border-top: 2px solid {ModernUITheme.PRIMARY};
-                width: 20px;
-                height: 20px;
-                animation: spin 1s linear infinite;
-            }}
+               #loadingSpinner {{
+                   border: 2px solid rgba(59, 130, 246, 0.3);
+                   border-radius: 50%;
+                   border-top: 2px solid {ModernUITheme.PRIMARY};
+                   width: 20px;
+                   height: 20px;
+                   animation: spin 1s linear infinite;
+               }}
 
-            @keyframes spin {{
-                0% {{ transform: rotate(0deg); }}
-                100% {{ transform: rotate(360deg); }}
-            }}
-        """)
+               @keyframes spin {{
+                   0% {{ transform: rotate(0deg); }}
+                   100% {{ transform: rotate(360deg); }}
+               }}
+           """)
 
     def toggle_password_visibility(self):
         """Toggle password visibility with icon change"""
@@ -1833,6 +2073,7 @@ class ModernLoginDialog(QDialog):
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
             self.toggle_password_btn.setIcon(QIcon(":/icons/eye_closed.svg"))
+
     def show_password_reset(self):
         """Show password reset dialog (stub)"""
         QMessageBox.information(self, "Password Reset",
@@ -1944,6 +2185,7 @@ class ModernLoginDialog(QDialog):
             error_msg = f"Error resetting database: {str(e)}"
             logger.error(error_msg)
             QMessageBox.critical(self, "Reset Error", error_msg)
+
 class AudioRecordDialog(QDialog):
     """Modern audio recording dialog"""
 
@@ -2015,104 +2257,104 @@ class AudioRecordDialog(QDialog):
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
-            
-            #dialogHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                text-align: center;
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #statusContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #statusLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                text-align: center;
-                font-weight: 500;
-            }}
-            
-            #recordButton {{
-                background-color: {ModernUITheme.ERROR};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 56px;
-            }}
-            
-            #recordButton:hover {{
-                background-color: #B91C1C;
-            }}
-            
-            #recordButton:disabled {{
-                background-color: {ModernUITheme.TEXT_DISABLED};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #playButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #playButton:hover {{
-                background-color: #047857;
-            }}
-            
-            #playButton:disabled {{
-                background-color: {ModernUITheme.TEXT_DISABLED};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #secondaryButton {{
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #secondaryButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                border-color: {ModernUITheme.TEXT_MUTED};
-            }}
-        """)
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
+
+               #dialogHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   text-align: center;
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #statusContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #statusLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   text-align: center;
+                   font-weight: 500;
+               }}
+
+               #recordButton {{
+                   background-color: {ModernUITheme.ERROR};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 56px;
+               }}
+
+               #recordButton:hover {{
+                   background-color: #B91C1C;
+               }}
+
+               #recordButton:disabled {{
+                   background-color: {ModernUITheme.TEXT_DISABLED};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #playButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #playButton:hover {{
+                   background-color: #047857;
+               }}
+
+               #playButton:disabled {{
+                   background-color: {ModernUITheme.TEXT_DISABLED};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #secondaryButton {{
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #secondaryButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-color: {ModernUITheme.TEXT_MUTED};
+               }}
+           """)
 
     def toggle_recording(self):
         if not self.recorder:
@@ -2313,130 +2555,130 @@ class UserManagementDialog(QDialog):
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
-            
-            #dialogHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #formContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #fieldLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin-bottom: {ModernUITheme.SPACE_SM};
-            }}
-            
-            #modernInput {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
-            
-            #modernInput:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            #modernInput:disabled {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #modernCombo {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
-            
-            #modernCombo:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #modernCombo::drop-down {{
-                border: none;
-                width: 20px;
-            }}
-            
-            #modernCombo::down-arrow {{
-                image: none;
-                border: none;
-                width: 12px;
-                height: 12px;
-            }}
-            
-            #modernCheckbox {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-            }}
-            
-            #modernCheckbox::indicator {{
-                width: 18px;
-                height: 18px;
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: 4px;
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
-            
-            #modernCheckbox::indicator:checked {{
-                background-color: {ModernUITheme.PRIMARY};
-                border-color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #secondaryButton {{
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #secondaryButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                border-color: {ModernUITheme.TEXT_MUTED};
-            }}
-        """)
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
+
+               #dialogHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #formContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #fieldLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   margin-bottom: {ModernUITheme.SPACE_SM};
+               }}
+
+               #modernInput {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
+
+               #modernInput:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               #modernInput:disabled {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #modernCombo {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
+
+               #modernCombo:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+               }}
+
+               #modernCombo::drop-down {{
+                   border: none;
+                   width: 20px;
+               }}
+
+               #modernCombo::down-arrow {{
+                   image: none;
+                   border: none;
+                   width: 12px;
+                   height: 12px;
+               }}
+
+               #modernCheckbox {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+               }}
+
+               #modernCheckbox::indicator {{
+                   width: 18px;
+                   height: 18px;
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: 4px;
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
+
+               #modernCheckbox::indicator:checked {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   border-color: {ModernUITheme.PRIMARY};
+               }}
+
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #secondaryButton {{
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #secondaryButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-color: {ModernUITheme.TEXT_MUTED};
+               }}
+           """)
 
     def save_user(self):
         username = self.username_input.text().strip()
@@ -2490,7 +2732,6 @@ class UserManagementDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Operation failed: {str(e)}")
-# TODO: This part is causing UI freezing. Please suggest a refactor using QThread or async technique to prevent Not Responding.
 class DatabaseWorker(QThread):
     """CORRECTED Database Worker Thread for async database operations"""
 
@@ -2689,7 +2930,7 @@ class DatabaseWorker(QThread):
             verify_stats = db.get_verification_statistics(filters)
 
             self.operation_progress.emit(self.current_operation['id'], 80, "Loading recent data...")
-            recent_bans = db.get_all_bans(filters)[:10] if hasattr(db, 'get_all_bans') else []
+            recent_bans = db.get_all_bans(filters, exclude_blob=True) if hasattr(db, 'get_all_bans') else []
             recent_logs = db.get_recent_logs(15, filters) if hasattr(db, 'get_recent_logs') else []
 
             self.operation_progress.emit(self.current_operation['id'], 100, "Statistics complete")
@@ -2778,7 +3019,6 @@ class DatabaseWorker(QThread):
             self.wait(5000)  # Wait up to 5 seconds for thread to finish
 
         logger.info("DatabaseWorker thread stopped")
-
 class LoadingOverlay(QWidget):
     """Loading overlay that covers the entire widget"""
 
@@ -2870,6 +3110,8 @@ class LoadingOverlay(QWidget):
         """Update spinner animation"""
         self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
         self.spinner_label.setText(self.spinner_chars[self.spinner_index])
+
+
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
 
@@ -2911,13 +3153,30 @@ class MainWindow(QMainWindow):
 
         self.init_ui()
         self.apply_modern_styles()
+        self.initialize_audio_system()
 
         # Use single shot timer to avoid blocking
         QTimer.singleShot(500, self.initial_dashboard_load_async)
         QTimer.singleShot(1000, self.start_monitoring)
 
+
         logger.info(f"Modern UI main window initialized for user: {user_info['username']} with role: {user_info['role']}")
         self.setup_loading_overlays()
+
+    def initialize_audio_system(self):
+        """Add this to your main window's __init__ method"""
+        # Initialize audio recorder
+        self.audio_recorder = AudioRecorder()
+
+        # Set up logging
+        logging.basicConfig(level=logging.DEBUG)
+        self.logger = logging.getLogger(__name__)
+
+        # Ensure status bar exists
+        if not hasattr(self, 'status_bar'):
+            self.status_bar = self.statusBar()
+
+        logger.info("Audio system initialized")
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -2936,6 +3195,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.sidebar)
 
         self.create_modern_content_area()
+
         main_layout.addWidget(self.content_area, 1)
 
     def create_modern_sidebar(self):
@@ -3498,13 +3758,73 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(str(value) if value else "")
                     self.logs_table.setItem(row, col, item)
 
-    def update_dashboard_with_statistics(self, stats_data):
-        """Update dashboard with statistics data - use your existing logic"""
-        # Use your existing dashboard update methods here
-        # This is where you'd call your existing refresh_dashboard logic
-        # but with the pre-loaded stats_data instead of loading it again
-        pass
+    def play_auto_verification_voice(self):
+        """Play voice note from auto verification page"""
+        if not hasattr(self, 'audio_recorder') or not self.audio_recorder:
+            logger.warning("Audio recorder not initialized.")
+            QMessageBox.warning(self, "Audio Error", "Audio system not ready.")
+            return
 
+        if hasattr(self, 'auto_current_voice_data') and self.auto_current_voice_data:
+            try:
+                self.auto_voice_info_label.setText("🔊 Playing voice note...")
+                self.audio_recorder.play_audio(self.auto_current_voice_data, self.on_auto_voice_finished)
+            except Exception as e:
+                logger.error(f"Error playing auto verification voice: {e}")
+                QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
+
+    def update_dashboard_with_statistics(self, stats):
+        """Update dashboard with statistics data safely."""
+        try:
+            # Helper function to update stat card value
+            def update_stat_card(card_widget, new_value):
+                if card_widget:
+                    # Find the value label (first QLabel child with objectName "valueLabel")
+                    for child in card_widget.findChildren(QLabel):
+                        if child.objectName() == "valueLabel":
+                            child.setText(str(new_value))
+                            break
+
+            # تحديث إحصائيات الحظر
+            if hasattr(self, "label_total_bans") and self.label_total_bans:
+                update_stat_card(self.label_total_bans, stats.get("ban_stats", {}).get("total_bans", 0))
+
+            if hasattr(self, "label_active_bans") and self.label_active_bans:
+                update_stat_card(self.label_active_bans, stats.get("ban_stats", {}).get("active_bans", 0))
+
+            # تحديث إحصائيات التحقق
+            if hasattr(self, "label_total_verifications") and self.label_total_verifications:
+                update_stat_card(self.label_total_verifications, stats.get("verify_stats", {}).get("total", 0))
+
+            if hasattr(self, "label_success_rate") and self.label_success_rate:
+                success_rate = stats.get("verify_stats", {}).get("success_rate", 0.0)
+                update_stat_card(self.label_success_rate, f"{round(success_rate, 1)}%")
+
+            # تحديث جدول الحظر الأخير
+            if hasattr(self, "recent_bans_table") and self.recent_bans_table:
+                self.recent_bans_table.setRowCount(0)
+                for row_data in stats.get("recent_bans", []):
+                    row = self.recent_bans_table.rowCount()
+                    self.recent_bans_table.insertRow(row)
+                    for col, value in enumerate(
+                            [row_data[1], row_data[2], row_data[3], row_data[4], row_data[5], row_data[6]]):
+                        self.recent_bans_table.setItem(row, col, QTableWidgetItem(str(value)))
+
+            # تحديث جدول السجلات الأخيرة
+            if hasattr(self, "recent_table") and self.recent_table:
+                self.recent_table.setRowCount(0)
+                for row_data in stats.get("recent_logs", []):
+                    row = self.recent_table.rowCount()
+                    self.recent_table.insertRow(row)
+                    for col, value in enumerate([row_data[4], row_data[1], row_data[2], row_data[3], row_data[5]]):
+                        self.recent_table.setItem(row, col, QTableWidgetItem(str(value)))
+
+            logger.info("✅ Dashboard statistics updated successfully.")
+
+        except RuntimeError as e:
+            logger.error(f"❌ Runtime error updating dashboard (UI deleted?): {e}")
+        except Exception as e:
+            logger.error(f"❌ Error updating dashboard statistics: {e}")
     def create_modern_content_area(self):
         self.content_area = QFrame()
         self.content_area.setObjectName("modernContentArea")
@@ -3524,8 +3844,8 @@ class MainWindow(QMainWindow):
 
         # Only create settings page if user has access
         if self.user_info['role'] in ['admin', 'supervisor']:
-            self.settings_page = self.create_modern_settings_page()
-            self.stacked_widget.addWidget(self.settings_page)
+           self.settings_page = self.create_modern_settings_page()
+           self.stacked_widget.addWidget(self.settings_page)
 
         self.stacked_widget.addWidget(self.dashboard_page)
         self.stacked_widget.addWidget(self.verification_page)
@@ -3535,168 +3855,49 @@ class MainWindow(QMainWindow):
 
         self.content_layout.addWidget(self.stacked_widget)
 
-    def create_modern_dashboard_page(self):
-        """Create modern dashboard page with enhanced styling"""
-        page = QWidget()
-        page.setObjectName("modernPage")
-        layout = QVBoxLayout(page)
-        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+    def _style_stat_label(self, label: QLabel, title: str):
+        """Apply style to stat QLabel"""
+        label.setStyleSheet("""
+            background-color: #F0F4F8;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        """)
+        label.setText(f"0\n{title}")
+        label.setAlignment(Qt.AlignCenter)
+        label.setMinimumWidth(150)
 
-        # Modern header section
-        header_container = QFrame()
-        header_container.setObjectName("pageHeader")
-        header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+    def _create_stat_card(self, value: str, label: str) -> QWidget:
+        card = QFrame()
+        card.setObjectName("statCard")
 
-        header_info = QVBoxLayout()
-        header_title = QLabel("📊 Dashboard")
-        header_title.setObjectName("pageTitle")
-        header_info.addWidget(header_title)
+        # Set size policy for proper resizing
+        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        card.setMinimumHeight(120)
+        card.setMaximumHeight(160)
 
-        header_subtitle = QLabel("Ban Records & Verification Statistics")
-        header_subtitle.setObjectName("pageSubtitle")
-        header_info.addWidget(header_subtitle)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignCenter)
 
-        header_layout.addLayout(header_info)
-        header_layout.addStretch()
+        value_label = QLabel(value)
+        value_label.setObjectName("valueLabel")
+        value_label.setAlignment(Qt.AlignCenter)
+        value_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        value_label.setWordWrap(True)  # Allow text wrapping
+        layout.addWidget(value_label)
 
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.setObjectName("refreshButton")
-        refresh_btn.clicked.connect(self.refresh_dashboard)
-        header_layout.addWidget(refresh_btn)
+        desc_label = QLabel(label)
+        desc_label.setObjectName("descLabel")
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        desc_label.setWordWrap(True)  # Allow text wrapping
+        layout.addWidget(desc_label)
 
-        layout.addWidget(header_container)
-
-        # Modern filter section
-        filter_container = QFrame()
-        filter_container.setObjectName("filterContainer")
-        filter_layout = QVBoxLayout(filter_container)
-        filter_layout.setContentsMargins(24, 20, 24, 20)
-        filter_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        filter_header = QLabel("📊 Dashboard Filters")
-        filter_header.setObjectName("filterHeader")
-        filter_layout.addWidget(filter_header)
-
-        filter_controls = QHBoxLayout()
-        filter_controls.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        # Date range controls
-        date_group = QVBoxLayout()
-        date_label = QLabel("Date Range")
-        date_label.setObjectName("filterLabel")
-        date_group.addWidget(date_label)
-
-        date_controls = QHBoxLayout()
-        date_controls.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
-
-        self.dashboard_start_date = QDateEdit()
-        self.dashboard_start_date.setObjectName("modernDateEdit")
-        self.dashboard_start_date.setDate(QDate.currentDate().addDays(-30))
-        self.dashboard_start_date.setCalendarPopup(True)
-        date_controls.addWidget(self.dashboard_start_date)
-
-        date_to_label = QLabel("to")
-        date_to_label.setObjectName("dateToLabel")
-        date_controls.addWidget(date_to_label)
-
-        self.dashboard_end_date = QDateEdit()
-        self.dashboard_end_date.setObjectName("modernDateEdit")
-        self.dashboard_end_date.setDate(QDate.currentDate())
-        self.dashboard_end_date.setCalendarPopup(True)
-        date_controls.addWidget(self.dashboard_end_date)
-
-        date_group.addLayout(date_controls)
-        filter_controls.addLayout(date_group)
-
-        filter_controls.addStretch()
-
-        # Filter action buttons
-        filter_actions = QHBoxLayout()
-        filter_actions.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
-
-        apply_filter_btn = QPushButton("🔍 Apply Filter")
-        apply_filter_btn.setObjectName("applyFilterButton")
-        apply_filter_btn.clicked.connect(self.apply_dashboard_filter)
-        filter_actions.addWidget(apply_filter_btn)
-
-        clear_filter_btn = QPushButton("🗑️ Clear")
-        clear_filter_btn.setObjectName("clearFilterButton")
-        clear_filter_btn.clicked.connect(self.clear_dashboard_filter)
-        filter_actions.addWidget(clear_filter_btn)
-
-        filter_controls.addLayout(filter_actions)
-        filter_layout.addLayout(filter_controls)
-
-        # Filter status indicator
-        self.dashboard_filter_status = QLabel("📄 Showing all data")
-        self.dashboard_filter_status.setObjectName("filterStatus")
-        filter_layout.addWidget(self.dashboard_filter_status)
-
-        layout.addWidget(filter_container)
-
-        # Statistics sections with modern cards
-        stats_section = QVBoxLayout()
-        stats_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-
-        # Ban statistics
-        ban_stats_header = QLabel("⛔ Ban Records Statistics")
-        ban_stats_header.setObjectName("statsHeader")
-        stats_section.addWidget(ban_stats_header)
-
-        ban_stats_container = QFrame()
-        ban_stats_container.setObjectName("statsContainer")
-        self.ban_stats_container = QHBoxLayout(ban_stats_container)
-        self.ban_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-        stats_section.addWidget(ban_stats_container)
-
-        # Verification statistics
-        verify_stats_header = QLabel("✅ Verification Statistics")
-        verify_stats_header.setObjectName("statsHeader")
-        stats_section.addWidget(verify_stats_header)
-
-        verify_stats_container = QFrame()
-        verify_stats_container.setObjectName("statsContainer")
-        self.verify_stats_container = QHBoxLayout(verify_stats_container)
-        self.verify_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-        stats_section.addWidget(verify_stats_container)
-
-        layout.addLayout(stats_section)
-
-        # Recent activity tables with modern styling
-        tables_section = QVBoxLayout()
-        tables_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-
-        # Recent ban records table
-        recent_bans_header = QLabel("📋 Recent Ban Records")
-        recent_bans_header.setObjectName("tableHeader")
-        tables_section.addWidget(recent_bans_header)
-
-        self.recent_bans_table = QTableWidget()
-        self.recent_bans_table.setObjectName("modernTable")
-        self.recent_bans_table.setColumnCount(6)
-        self.recent_bans_table.setHorizontalHeaderLabels(["Tanker", "Reason", "Type", "Start Date", "End Date", "Created By"])
-        self.recent_bans_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.recent_bans_table.setMaximumHeight(250)
-        tables_section.addWidget(self.recent_bans_table)
-
-        # Recent verification activity table
-        recent_logs_header = QLabel("📋 Recent Verification Activity")
-        recent_logs_header.setObjectName("tableHeader")
-        tables_section.addWidget(recent_logs_header)
-
-        self.recent_table = QTableWidget()
-        self.recent_table.setObjectName("modernTable")
-        self.recent_table.setColumnCount(5)
-        self.recent_table.setHorizontalHeaderLabels(["⏰ Time", "🚛 Tanker", "📊 Status", "📝 Reason", "👤 Operator"])
-        self.recent_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.recent_table.setMaximumHeight(250)
-        tables_section.addWidget(self.recent_table)
-
-        layout.addLayout(tables_section)
-        layout.addStretch()
-
-        return page
+        return card
 
     def create_modern_verification_page(self):
         """Create modern auto verification page"""
@@ -3782,6 +3983,270 @@ class MainWindow(QMainWindow):
 
         return page
 
+    def create_modern_dashboard_page(self):
+        """Create modern dashboard page with enhanced styling"""
+        page = QWidget()
+        page.setObjectName("modernPage")
+        layout = QVBoxLayout(page)
+        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+
+        # ==== Header ====
+        header_container = QFrame()
+        header_container.setObjectName("pageHeader")
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        header_info = QVBoxLayout()
+        header_title = QLabel("📊 Dashboard")
+        header_title.setObjectName("pageTitle")
+        header_info.addWidget(header_title)
+
+        header_subtitle = QLabel("Ban Records & Verification Statistics")
+        header_subtitle.setObjectName("pageSubtitle")
+        header_info.addWidget(header_subtitle)
+
+        header_layout.addLayout(header_info)
+        header_layout.addStretch()
+
+        refresh_btn = QPushButton("🔄 Refresh")
+        refresh_btn.setObjectName("refreshButton")
+        refresh_btn.clicked.connect(self.refresh_dashboard)
+        header_layout.addWidget(refresh_btn)
+
+        layout.addWidget(header_container)
+
+        # ==== Filters ====
+        filter_container = QFrame()
+        filter_container.setObjectName("filterContainer")
+        filter_layout = QVBoxLayout(filter_container)
+        filter_layout.setContentsMargins(24, 20, 24, 20)
+        filter_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        filter_header = QLabel("📊 Dashboard Filters")
+        filter_header.setObjectName("filterHeader")
+        filter_layout.addWidget(filter_header)
+
+        filter_controls = QHBoxLayout()
+        filter_controls.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        date_group = QVBoxLayout()
+        date_label = QLabel("Date Range")
+        date_label.setObjectName("filterLabel")
+        date_group.addWidget(date_label)
+
+        date_controls = QHBoxLayout()
+        date_controls.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
+        self.dashboard_start_date = QDateEdit()
+        self.dashboard_start_date.setObjectName("modernDateEdit")
+        self.dashboard_start_date.setDate(QDate.currentDate().addDays(-30))
+        self.dashboard_start_date.setCalendarPopup(True)
+        date_controls.addWidget(self.dashboard_start_date)
+
+        date_to_label = QLabel("to")
+        date_to_label.setObjectName("dateToLabel")
+        date_controls.addWidget(date_to_label)
+
+        self.dashboard_end_date = QDateEdit()
+        self.dashboard_end_date.setObjectName("modernDateEdit")
+        self.dashboard_end_date.setDate(QDate.currentDate())
+        self.dashboard_end_date.setCalendarPopup(True)
+        date_controls.addWidget(self.dashboard_end_date)
+
+        date_group.addLayout(date_controls)
+        filter_controls.addLayout(date_group)
+        filter_controls.addStretch()
+
+        filter_actions = QHBoxLayout()
+        filter_actions.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
+        apply_filter_btn = QPushButton("🔍 Apply Filter")
+        apply_filter_btn.setObjectName("applyFilterButton")
+        apply_filter_btn.clicked.connect(self.apply_dashboard_filter)
+        filter_actions.addWidget(apply_filter_btn)
+
+        clear_filter_btn = QPushButton("🗑️ Clear")
+        clear_filter_btn.setObjectName("clearFilterButton")
+        clear_filter_btn.clicked.connect(self.clear_dashboard_filter)
+        filter_actions.addWidget(clear_filter_btn)
+
+        filter_controls.addLayout(filter_actions)
+        filter_layout.addLayout(filter_controls)
+
+        self.dashboard_filter_status = QLabel("📄 Showing all data")
+        self.dashboard_filter_status.setObjectName("filterStatus")
+        filter_layout.addWidget(self.dashboard_filter_status)
+
+        layout.addWidget(filter_container)
+
+        # ==== Stats ====
+        stats_section = QVBoxLayout()
+        stats_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+
+        ban_stats_header = QLabel("⛔ Ban Records Statistics")
+        ban_stats_header.setObjectName("statsHeader")
+        stats_section.addWidget(ban_stats_header)
+
+        self.ban_stats_container = QFrame()
+        self.ban_stats_container.setObjectName("statsContainer")
+        self.ban_stats_layout = QGridLayout(self.ban_stats_container)
+        self.ban_stats_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        self.label_total_bans = self._create_stat_card("0", "Total Bans")
+        self.ban_stats_layout.addWidget(self.label_total_bans, 0, 0)
+
+        self.label_active_bans = self._create_stat_card("0", "Active Bans")
+        self.ban_stats_layout.addWidget(self.label_active_bans, 0, 1)
+
+        stats_section.addWidget(self.ban_stats_container)
+
+        verify_stats_header = QLabel("✅ Verification Statistics")
+        verify_stats_header.setObjectName("statsHeader")
+        stats_section.addWidget(verify_stats_header)
+
+        self.verify_stats_container_frame = QFrame()
+        self.verify_stats_container_frame.setObjectName("statsContainer")
+        self.verify_stats_container = QGridLayout(self.verify_stats_container_frame)
+        self.verify_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        self.label_total_verifications = self._create_stat_card("0", "Total Verifications")
+        self.verify_stats_container.addWidget(self.label_total_verifications, 0, 0)
+
+        self.label_success_rate = self._create_stat_card("0%", "Success Rate")
+        self.verify_stats_container.addWidget(self.label_success_rate, 0, 1)
+
+        stats_section.addWidget(self.verify_stats_container_frame)
+        layout.addLayout(stats_section)
+
+        # ==== Tables Section - REDESIGNED ====
+        tables_section = QVBoxLayout()
+        tables_section.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+
+        # Recent Ban Records Table
+        recent_bans_container = QFrame()
+        recent_bans_container.setObjectName("tableContainer")
+        bans_container_layout = QVBoxLayout(recent_bans_container)
+        bans_container_layout.setContentsMargins(24, 20, 24, 20)
+        bans_container_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        bans_header_layout = QHBoxLayout()
+        recent_bans_header = QLabel("📋 Recent Ban Records")
+        recent_bans_header.setObjectName("tableHeader")
+        bans_header_layout.addWidget(recent_bans_header)
+
+        bans_count_label = QLabel("Loading...")
+        bans_count_label.setObjectName("tableCount")
+        bans_header_layout.addStretch()
+        bans_header_layout.addWidget(bans_count_label)
+
+        bans_container_layout.addLayout(bans_header_layout)
+
+        # Redesigned Recent Bans Table
+        self.recent_bans_table = QTableWidget()
+        self.recent_bans_table.setObjectName("dashboardTable")
+        self.recent_bans_table.setColumnCount(6)
+        self.recent_bans_table.setHorizontalHeaderLabels([
+            "🚛 Tanker", "📝 Reason", "🏷️ Type", "📅 Start", "📅 End", "👤 Created By"
+        ])
+
+        # Configure recent bans table for responsiveness
+        self.setup_responsive_table(self.recent_bans_table, [
+            ("🚛 Tanker", 100, QHeaderView.ResizeToContents),
+            ("📝 Reason", 200, QHeaderView.Stretch),
+            ("🏷️ Type", 80, QHeaderView.ResizeToContents),
+            ("📅 Start", 90, QHeaderView.ResizeToContents),
+            ("📅 End", 90, QHeaderView.ResizeToContents),
+            ("👤 Created By", 100, QHeaderView.ResizeToContents)
+        ])
+
+        self.recent_bans_table.setMaximumHeight(280)
+        self.recent_bans_table.setMinimumHeight(200)
+        bans_container_layout.addWidget(self.recent_bans_table)
+
+        # Store reference for count updates
+        self.bans_count_label = bans_count_label
+
+        tables_section.addWidget(recent_bans_container)
+
+        # Recent Verification Activity Table
+        recent_logs_container = QFrame()
+        recent_logs_container.setObjectName("tableContainer")
+        logs_container_layout = QVBoxLayout(recent_logs_container)
+        logs_container_layout.setContentsMargins(24, 20, 24, 20)
+        logs_container_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        logs_header_layout = QHBoxLayout()
+        recent_logs_header = QLabel("📋 Recent Verification Activity")
+        recent_logs_header.setObjectName("tableHeader")
+        logs_header_layout.addWidget(recent_logs_header)
+
+        logs_count_label = QLabel("Loading...")
+        logs_count_label.setObjectName("tableCount")
+        logs_header_layout.addStretch()
+        logs_header_layout.addWidget(logs_count_label)
+
+        logs_container_layout.addLayout(logs_header_layout)
+
+        # Redesigned Recent Activity Table
+        self.recent_table = QTableWidget()
+        self.recent_table.setObjectName("dashboardTable")
+        self.recent_table.setColumnCount(5)
+        self.recent_table.setHorizontalHeaderLabels([
+            "⏰ Time", "🚛 Tanker", "📊 Status", "📝 Reason", "👤 Operator"
+        ])
+
+        # Configure recent logs table for responsiveness
+        self.setup_responsive_table(self.recent_table, [
+            ("⏰ Time", 120, QHeaderView.ResizeToContents),
+            ("🚛 Tanker", 100, QHeaderView.ResizeToContents),
+            ("📊 Status", 100, QHeaderView.ResizeToContents),
+            ("📝 Reason", 250, QHeaderView.Stretch),
+            ("👤 Operator", 100, QHeaderView.ResizeToContents)
+        ])
+
+        self.recent_table.setMaximumHeight(280)
+        self.recent_table.setMinimumHeight(200)
+        logs_container_layout.addWidget(self.recent_table)
+
+        # Store reference for count updates
+        self.logs_count_label = logs_count_label
+
+        tables_section.addWidget(recent_logs_container)
+
+        layout.addLayout(tables_section)
+
+    def setup_responsive_table(self, table, column_config):
+        """Setup responsive table with proper column configuration
+
+        Args:
+            table: QTableWidget to configure
+            column_config: List of tuples (header, min_width, resize_mode)
+        """
+        header = table.horizontalHeader()
+
+        for i, (header_text, min_width, resize_mode) in enumerate(column_config):
+            if resize_mode == QHeaderView.Stretch:
+                header.setSectionResizeMode(i, QHeaderView.Stretch)
+            elif resize_mode == QHeaderView.ResizeToContents:
+                header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            else:
+                header.setSectionResizeMode(i, QHeaderView.Interactive)
+
+            # Set minimum widths
+            table.setColumnWidth(i, min_width)
+
+        # Configure table behavior
+        table.setAlternatingRowColors(True)
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SingleSelection)
+        table.setSortingEnabled(True)
+        table.verticalHeader().hide()
+
+        # Set row height
+        table.verticalHeader().setDefaultSectionSize(36)
+
+        # Enable word wrap for cells
+        table.setWordWrap(True)
     def create_modern_manual_verify_page(self):
         """Create modern manual verification page"""
         page = QWidget()
@@ -4603,634 +5068,630 @@ class MainWindow(QMainWindow):
     def apply_modern_styles(self):
         """Apply comprehensive modern styling"""
         self.setStyleSheet(f"""
-            /* Main Window Styling */
-            QMainWindow {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-                color: {ModernUITheme.TEXT_PRIMARY};
-            }}
-            
-            /* Status Bar */
-            #modernStatusBar {{
-                background-color: {ModernUITheme.SURFACE};
-                border-top: 1px solid {ModernUITheme.BORDER_LIGHT};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_SM};
-            }}
-            
-            /* Sidebar Styling */
-            #modernSidebar {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-                    stop:0 {ModernUITheme.DARK_PRIMARY}, stop:1 {ModernUITheme.DARK_SECONDARY});
-                border-right: 1px solid {ModernUITheme.BORDER};
-            }}
-            
-            #titleContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_LG};
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #sidebarTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 700;
-                color: white;
-                margin: 0;
-            }}
-            
-            #sidebarSubtitle {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: rgba(255, 255, 255, 0.8);
-                font-weight: 500;
-                margin: 0;
-            }}
-            
-            /* Navigation Styling */
-            #navContainer {{
-                background-color: transparent;
-            }}
-            
-            #navButtonContainer {{
-                background-color: transparent;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                border: none;
-                margin: {ModernUITheme.SPACE_XS} 0;
-                transition: all 0.2s ease;
-            }}
-            
-            #navButtonContainer:hover {{
-                background-color: rgba(255, 255, 255, 0.1);
-                transform: translateX(4px);
-            }}
-            
-            #navButtonContainerDisabled {{
-                background-color: transparent;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                opacity: 0.5;
-            }}
-            
-            #navIcon {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: white;
-                min-width: 24px;
-            }}
-            
-            #navText {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                color: white;
-            }}
-            
-            /* Sidebar Components */
-            #restrictionNotice {{
-                background-color: rgba(255, 183, 77, 0.1);
-                border: 1px solid rgba(255, 183, 77, 0.3);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                margin: {ModernUITheme.SPACE_MD} 0;
-            }}
-            
-            #restrictionTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: #FFB74D;
-            }}
-            
-            #restrictionDesc {{
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                color: rgba(255, 183, 77, 0.8);
-            }}
-            
-            #soundContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                margin: {ModernUITheme.SPACE_MD} 0;
-            }}
-            
-            #soundHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: white;
-                text-align: center;
-            }}
-            
-            #soundToggle {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                min-width: 50px;
-            }}
-            
-            #soundToggle:!checked {{
-                background-color: {ModernUITheme.ERROR};
-            }}
-            
-            #soundStop {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-            }}
-            
-            #userContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #userName {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: white;
-            }}
-            
-            #userRoleAdmin {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #FFB74D;
-                font-weight: 500;
-            }}
-            
-            #userRoleSupervisor {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #81C784;
-                font-weight: 500;
-            }}
-            
-            #userRoleOperator {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #64B5F6;
-                font-weight: 500;
-            }}
-            
-            /* Content Area */
-            #modernContentArea {{
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
-            
-            #modernStackedWidget {{
-                background-color: transparent;
-            }}
-            
-            #modernPage {{
-                background-color: transparent;
-            }}
-            
-            /* Page Headers */
-            #pageHeader {{
-                background-color: transparent;
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #pageTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_3XL};
-                font-weight: 700;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin: 0;
-                letter-spacing: -0.5px;
-            }}
-            
-            #pageSubtitle {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 400;
-                margin: {ModernUITheme.SPACE_SM} 0 0 0;
-            }}
-            
-            /* Buttons */
-            #refreshButton, #verifyButton, #addBanButton, #saveButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #refreshButton:hover, #verifyButton:hover, #addBanButton:hover, #saveButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-                transform: translateY(-1px);
-            }}
-            
-            #addBanButton {{
-                background-color: {ModernUITheme.ERROR};
-            }}
-            
-            #addBanButton:hover {{
-                background-color: #B91C1C;
-            }}
-            
-            #addUserButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #addUserButton:hover {{
-                background-color: #047857;
-            }}
-            
-            #resetButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #resetButton:hover {{
-                background-color: #B45309;
-            }}
-            
-            #browseButton, #testButton {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #browseButton:hover, #testButton:hover {{
-                background-color: #374151;
-            }}
-            
-            #quickButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                min-height: 36px;
-            }}
-            
-            #quickButton:hover {{
-                background-color: #B45309;
-            }}
-            
-            #applyFilterButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #applyFilterButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #clearFilterButton {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #clearFilterButton:hover {{
-                background-color: #374151;
-            }}
-            
-            #voicePlayButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
-                min-height: 36px;
-            }}
-            
-            #voicePlayButton:hover {{
-                background-color: #047857;
-            }}
-            
-            /* Containers and Cards */
-            #filterContainer, #controlContainer, #inputContainer, #settingsContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                box-shadow: {ModernUITheme.SHADOW_SM};
-            }}
-            
-            #resultContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_XL};
-                box-shadow: {ModernUITheme.SHADOW_MD};
-            }}
-            
-            #voiceContainer {{
-                background-color: rgba(5, 150, 105, 0.1);
-                border: 1px solid rgba(5, 150, 105, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #statsContainer {{
-                background-color: transparent;
-            }}
-            
-            #noticeContainer {{
-                background-color: rgba(251, 191, 36, 0.1);
-                border: 1px solid rgba(251, 191, 36, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #noticeLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.WARNING};
-                font-weight: 500;
-                line-height: 1.5;
-            }}
-            
-            /* Labels and Text */
-            #filterHeader, #settingsHeader, #tableHeader, #statsHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin: 0;
-            }}
-            
-            #filterLabel, #settingsLabel, #inputLabel, #quickLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin: 0;
-            }}
-            
-            #filterStatus, #countLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-style: italic;
-                margin: 0;
-            }}
-            
-            #tankerInfoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                text-align: center;
-                margin: 0;
-            }}
-            
-            #statusDisplayLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_3XL};
-                font-weight: 700;
-                text-align: center;
-                margin: {ModernUITheme.SPACE_LG} 0;
-                letter-spacing: -0.5px;
-            }}
-            
-            #reasonDisplayLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                text-align: center;
-                line-height: 1.5;
-                margin: 0;
-            }}
-            
-            #voiceInfoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 500;
-            }}
-            
-            #dateToLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-weight: 500;
-                margin: 0 {ModernUITheme.SPACE_SM};
-            }}
-            
-            #statusLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} 0;
-            }}
-            
-            #infoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-family: {ModernUITheme.FONT_FAMILY_MONO};
-                line-height: 1.4;
-            }}
-            
-            #settingsSubtext {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                margin: 0;
-            }}
-            
-            /* Form Inputs */
-            #tankerInput, #filterInput, #pathInput {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #tankerInput:focus, #filterInput:focus, #pathInput:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            }}
-            
-            #modernDateEdit, #modernCombo {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #modernDateEdit:focus, #modernCombo:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            #modernSpinBox, #modernDoubleSpinBox {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #modernSpinBox:focus, #modernDoubleSpinBox:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            /* Tables */
-            #modernTable {{
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                background-color: {ModernUITheme.BACKGROUND};
-                gridline-color: {ModernUITheme.BORDER_LIGHT};
-                selection-background-color: rgba(37, 99, 235, 0.1);
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-            }}
-            
-            #modernTable::item {{
-                padding: {ModernUITheme.SPACE_MD};
-                border-bottom: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #modernTable::item:selected {{
-                background-color: rgba(37, 99, 235, 0.1);
-                color: {ModernUITheme.TEXT_PRIMARY};
-            }}
-            
-            #modernTable QHeaderView::section {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 600;
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_MD};
-                border: none;
-                border-bottom: 2px solid {ModernUITheme.BORDER};
-                border-right: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #modernTable QHeaderView::section:first {{
-                border-top-left-radius: {ModernUITheme.RADIUS_LG};
-            }}
-            
-            #modernTable QHeaderView::section:last {{
-                border-top-right-radius: {ModernUITheme.RADIUS_LG};
-                border-right: none;
-            }}
-            
-            /* Tab Widget */
-            #modernTabWidget {{
-                background-color: transparent;
-            }}
-            
-            #modernTabWidget::pane {{
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                background-color: {ModernUITheme.BACKGROUND};
-                margin-top: 8px;
-            }}
-            
-            #modernTabWidget QTabBar::tab {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                margin-right: {ModernUITheme.SPACE_XS};
-                border-radius: {ModernUITheme.RADIUS_MD} {ModernUITheme.RADIUS_MD} 0 0;
-                font-weight: 500;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-            }}
-            
-            #modernTabWidget QTabBar::tab:selected {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border-color: {ModernUITheme.PRIMARY};
-                font-weight: 600;
-            }}
-            
-            #modernTabWidget QTabBar::tab:hover:!selected {{
-                background-color: rgba(37, 99, 235, 0.1);
-                color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #modernTabPage {{
-                background-color: transparent;
-            }}
-            
-            /* Scrollbars */
-            QScrollBar:vertical {{
-                background-color: {ModernUITheme.SURFACE};
-                width: 12px;
-                border-radius: 6px;
-                margin: 0;
-            }}
-            
-            QScrollBar::handle:vertical {{
-                background-color: {ModernUITheme.TEXT_MUTED};
-                border-radius: 6px;
-                min-height: 20px;
-                margin: 2px;
-            }}
-            
-            QScrollBar::handle:vertical:hover {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-            }}
-            
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0;
-            }}
-            
-            QScrollBar:horizontal {{
-                background-color: {ModernUITheme.SURFACE};
-                height: 12px;
-                border-radius: 6px;
-                margin: 0;
-            }}
-            
-            QScrollBar::handle:horizontal {{
-                background-color: {ModernUITheme.TEXT_MUTED};
-                border-radius: 6px;
-                min-width: 20px;
-                margin: 2px;
-            }}
-            
-            QScrollBar::handle:horizontal:hover {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-            }}
-            
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
-                width: 0;
-            }}
-        """)
+               /* Main Window Styling */
+               QMainWindow {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+               }}
 
-    # Include all the existing methods from the original class
-    # (toggle_sound, stop_warning_sound, play_warning_sound_for_status, etc.)
-    # Continue with rest of methods...
+               /* Status Bar */
+               #modernStatusBar {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-top: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_SM};
+               }}
+
+               /* Sidebar Styling */
+               #modernSidebar {{
+                   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+                       stop:0 {ModernUITheme.DARK_PRIMARY}, stop:1 {ModernUITheme.DARK_SECONDARY});
+                   border-right: 1px solid {ModernUITheme.BORDER};
+               }}
+
+               #titleContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_LG};
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #sidebarTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 700;
+                   color: white;
+                   margin: 0;
+               }}
+
+               #sidebarSubtitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: rgba(255, 255, 255, 0.8);
+                   font-weight: 500;
+                   margin: 0;
+               }}
+
+               /* Navigation Styling */
+               #navContainer {{
+                   background-color: transparent;
+               }}
+
+               #navButtonContainer {{
+                   background-color: transparent;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   border: none;
+                   margin: {ModernUITheme.SPACE_XS} 0;
+                   transition: all 0.2s ease;
+               }}
+
+               #navButtonContainer:hover {{
+                   background-color: rgba(255, 255, 255, 0.1);
+                   transform: translateX(4px);
+               }}
+
+               #navButtonContainerDisabled {{
+                   background-color: transparent;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   opacity: 0.5;
+               }}
+
+               #navIcon {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: white;
+                   min-width: 24px;
+               }}
+
+               #navText {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   color: white;
+               }}
+
+               /* Sidebar Components */
+               #restrictionNotice {{
+                   background-color: rgba(255, 183, 77, 0.1);
+                   border: 1px solid rgba(255, 183, 77, 0.3);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   margin: {ModernUITheme.SPACE_MD} 0;
+               }}
+
+               #restrictionTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: #FFB74D;
+               }}
+
+               #restrictionDesc {{
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   color: rgba(255, 183, 77, 0.8);
+               }}
+
+               #soundContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border: 1px solid rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   margin: {ModernUITheme.SPACE_MD} 0;
+               }}
+
+               #soundHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: white;
+                   text-align: center;
+               }}
+
+               #soundToggle {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   min-width: 50px;
+               }}
+
+               #soundToggle:!checked {{
+                   background-color: {ModernUITheme.ERROR};
+               }}
+
+               #soundStop {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+               }}
+
+               #userContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border: 1px solid rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #userName {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: white;
+               }}
+
+               #userRoleAdmin {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #FFB74D;
+                   font-weight: 500;
+               }}
+
+               #userRoleSupervisor {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #81C784;
+                   font-weight: 500;
+               }}
+
+               #userRoleOperator {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #64B5F6;
+                   font-weight: 500;
+               }}
+
+               /* Content Area */
+               #modernContentArea {{
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
+
+               #modernStackedWidget {{
+                   background-color: transparent;
+               }}
+
+               #modernPage {{
+                   background-color: transparent;
+               }}
+
+               /* Page Headers */
+               #pageHeader {{
+                   background-color: transparent;
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #pageTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_3XL};
+                   font-weight: 700;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin: 0;
+                   letter-spacing: -0.5px;
+               }}
+
+               #pageSubtitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 400;
+                   margin: {ModernUITheme.SPACE_SM} 0 0 0;
+               }}
+
+               /* Buttons */
+               #refreshButton, #verifyButton, #addBanButton, #saveButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #refreshButton:hover, #verifyButton:hover, #addBanButton:hover, #saveButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+                   transform: translateY(-1px);
+               }}
+
+               #addBanButton {{
+                   background-color: {ModernUITheme.ERROR};
+               }}
+
+               #addBanButton:hover {{
+                   background-color: #B91C1C;
+               }}
+
+               #addUserButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #addUserButton:hover {{
+                   background-color: #047857;
+               }}
+
+               #resetButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #resetButton:hover {{
+                   background-color: #B45309;
+               }}
+
+               #browseButton, #testButton {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #browseButton:hover, #testButton:hover {{
+                   background-color: #374151;
+               }}
+
+               #quickButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   min-height: 36px;
+               }}
+
+               #quickButton:hover {{
+                   background-color: #B45309;
+               }}
+
+               #applyFilterButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #applyFilterButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #clearFilterButton {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #clearFilterButton:hover {{
+                   background-color: #374151;
+               }}
+
+               #voicePlayButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                   min-height: 36px;
+               }}
+
+               #voicePlayButton:hover {{
+                   background-color: #047857;
+               }}
+
+               /* Containers and Cards */
+               #filterContainer, #controlContainer, #inputContainer, #settingsContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   box-shadow: {ModernUITheme.SHADOW_SM};
+               }}
+
+               #resultContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_XL};
+                   box-shadow: {ModernUITheme.SHADOW_MD};
+               }}
+
+               #voiceContainer {{
+                   background-color: rgba(5, 150, 105, 0.1);
+                   border: 1px solid rgba(5, 150, 105, 0.2);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #statsContainer {{
+                   background-color: transparent;
+               }}
+
+               #noticeContainer {{
+                   background-color: rgba(251, 191, 36, 0.1);
+                   border: 1px solid rgba(251, 191, 36, 0.2);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #noticeLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.WARNING};
+                   font-weight: 500;
+                   line-height: 1.5;
+               }}
+
+               /* Labels and Text */
+               #filterHeader, #settingsHeader, #tableHeader, #statsHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin: 0;
+               }}
+
+               #filterLabel, #settingsLabel, #inputLabel, #quickLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   margin: 0;
+               }}
+
+               #filterStatus, #countLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-style: italic;
+                   margin: 0;
+               }}
+
+               #tankerInfoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   text-align: center;
+                   margin: 0;
+               }}
+
+               #statusDisplayLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_3XL};
+                   font-weight: 700;
+                   text-align: center;
+                   margin: {ModernUITheme.SPACE_LG} 0;
+                   letter-spacing: -0.5px;
+               }}
+
+               #reasonDisplayLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   text-align: center;
+                   line-height: 1.5;
+                   margin: 0;
+               }}
+
+               #voiceInfoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 500;
+               }}
+
+               #dateToLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-weight: 500;
+                   margin: 0 {ModernUITheme.SPACE_SM};
+               }}
+
+               #statusLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} 0;
+               }}
+
+               #infoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-family: {ModernUITheme.FONT_FAMILY_MONO};
+                   line-height: 1.4;
+               }}
+
+               #settingsSubtext {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   margin: 0;
+               }}
+
+               /* Form Inputs */
+               #tankerInput, #filterInput, #pathInput {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #tankerInput:focus, #filterInput:focus, #pathInput:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+                   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+               }}
+
+               #modernDateEdit, #modernCombo {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #modernDateEdit:focus, #modernCombo:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               #modernSpinBox, #modernDoubleSpinBox {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #modernSpinBox:focus, #modernDoubleSpinBox:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               /* Tables */
+               #modernTable {{
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   gridline-color: {ModernUITheme.BORDER_LIGHT};
+                   selection-background-color: rgba(37, 99, 235, 0.1);
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+               }}
+
+               #modernTable::item {{
+                   padding: {ModernUITheme.SPACE_MD};
+                   border-bottom: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #modernTable::item:selected {{
+                   background-color: rgba(37, 99, 235, 0.1);
+                   color: {ModernUITheme.TEXT_PRIMARY};
+               }}
+
+               #modernTable QHeaderView::section {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 600;
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_MD};
+                   border: none;
+                   border-bottom: 2px solid {ModernUITheme.BORDER};
+                   border-right: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #modernTable QHeaderView::section:first {{
+                   border-top-left-radius: {ModernUITheme.RADIUS_LG};
+               }}
+
+               #modernTable QHeaderView::section:last {{
+                   border-top-right-radius: {ModernUITheme.RADIUS_LG};
+                   border-right: none;
+               }}
+
+               /* Tab Widget */
+               #modernTabWidget {{
+                   background-color: transparent;
+               }}
+
+               #modernTabWidget::pane {{
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   margin-top: 8px;
+               }}
+
+               #modernTabWidget QTabBar::tab {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   margin-right: {ModernUITheme.SPACE_XS};
+                   border-radius: {ModernUITheme.RADIUS_MD} {ModernUITheme.RADIUS_MD} 0 0;
+                   font-weight: 500;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+               }}
+
+               #modernTabWidget QTabBar::tab:selected {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border-color: {ModernUITheme.PRIMARY};
+                   font-weight: 600;
+               }}
+
+               #modernTabWidget QTabBar::tab:hover:!selected {{
+                   background-color: rgba(37, 99, 235, 0.1);
+                   color: {ModernUITheme.PRIMARY};
+               }}
+
+               #modernTabPage {{
+                   background-color: transparent;
+               }}
+
+               /* Scrollbars */
+               QScrollBar:vertical {{
+                   background-color: {ModernUITheme.SURFACE};
+                   width: 12px;
+                   border-radius: 6px;
+                   margin: 0;
+               }}
+
+               QScrollBar::handle:vertical {{
+                   background-color: {ModernUITheme.TEXT_MUTED};
+                   border-radius: 6px;
+                   min-height: 20px;
+                   margin: 2px;
+               }}
+
+               QScrollBar::handle:vertical:hover {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+               }}
+
+               QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                   height: 0;
+               }}
+
+               QScrollBar:horizontal {{
+                   background-color: {ModernUITheme.SURFACE};
+                   height: 12px;
+                   border-radius: 6px;
+                   margin: 0;
+               }}
+
+               QScrollBar::handle:horizontal {{
+                   background-color: {ModernUITheme.TEXT_MUTED};
+                   border-radius: 6px;
+                   min-width: 20px;
+                   margin: 2px;
+               }}
+
+               QScrollBar::handle:horizontal:hover {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+               }}
+
+               QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                   width: 0;
+               }}
+           """)
 
     def toggle_sound(self):
         """Toggle sound enabled/disabled"""
@@ -5566,15 +6027,6 @@ class MainWindow(QMainWindow):
         else:
             return ModernUITheme.PRIMARY
 
-    def play_auto_verification_voice(self):
-        """Play voice note from auto verification page"""
-        if hasattr(self, 'auto_current_voice_data') and self.auto_current_voice_data and self.audio_recorder:
-            try:
-                self.auto_voice_info_label.setText("🔊 Playing voice note...")
-                self.audio_recorder.play_audio(self.auto_current_voice_data, self.on_auto_voice_finished)
-            except Exception as e:
-                logger.error(f"Error playing auto verification voice: {e}")
-                QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
 
     def play_manual_verification_voice(self):
         """Play voice note from manual verification page"""
@@ -5601,10 +6053,10 @@ class MainWindow(QMainWindow):
             self.manual_voice_info_label.setText(f"❌ Playback failed: {message}")
 
     def show_add_ban_dialog(self):
-        """Show modern add ban dialog"""
+        """Show modern add ban dialog with improved layout and spacing"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add New Ban Record")
-        dialog.setFixedSize(650, 550)
+        dialog.setFixedSize(800, 700)  # Increased size for better spacing
         dialog.setStyleSheet(f"""
             QDialog {{
                 background-color: {ModernUITheme.BACKGROUND};
@@ -5612,175 +6064,437 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-        layout.setContentsMargins(30, 30, 30, 30)
+        # Main layout with better margins
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+        main_layout.setContentsMargins(40, 30, 40, 30)
 
-        # Header
-        header_label = QLabel("Add New Ban Record")
-        header_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_2XL};
-            font-weight: 600;
-            color: {ModernUITheme.TEXT_PRIMARY};
-            margin-bottom: {ModernUITheme.SPACE_XL};
-        """)
-        layout.addWidget(header_label)
+        # Header section
+        header_section = self.create_dialog_header("Add New Ban Record", "🚫")
+        main_layout.addWidget(header_section)
 
-        # Form container
-        form_container = QFrame()
-        form_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-        """)
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        # Form fields
-        tanker_input = QLineEdit()
-        tanker_input.setObjectName("modernInput")
-        tanker_input.setPlaceholderText("Enter tanker number")
-
-        reason_input = QTextEdit()
-        reason_input.setObjectName("modernTextEdit")
-        reason_input.setPlaceholderText("Enter ban reason")
-        reason_input.setMaximumHeight(80)
-
-        type_combo = QComboBox()
-        type_combo.setObjectName("modernCombo")
-        type_combo.addItems(["temporary", "permanent", "permission", "reminder"])
-
-        start_date = QDateEdit()
-        start_date.setObjectName("modernDateEdit")
-        start_date.setDate(QDate.currentDate())
-        start_date.setCalendarPopup(True)
-
-        end_date = QDateEdit()
-        end_date.setObjectName("modernDateEdit")
-        end_date.setDate(QDate.currentDate().addDays(30))
-        end_date.setCalendarPopup(True)
-
-        # Add form fields with labels
-        fields = [
-            ("Tanker Number:", tanker_input),
-            ("Ban Reason:", reason_input),
-            ("Ban Type:", type_combo),
-            ("Start Date:", start_date),
-            ("End Date:", end_date)
-        ]
-
-        for label_text, widget in fields:
-            field_layout = QVBoxLayout()
-            label = QLabel(label_text)
-            label.setStyleSheet(f"""
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin-bottom: {ModernUITheme.SPACE_SM};
-            """)
-            field_layout.addWidget(label)
-            field_layout.addWidget(widget)
-            form_layout.addLayout(field_layout)
-
-        layout.addWidget(form_container)
+        # Form section
+        form_section = self.create_ban_form_section()
+        main_layout.addWidget(form_section)
 
         # Audio recording section
-        audio_container = QFrame()
-        audio_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: rgba(5, 150, 105, 0.1);
-                border: 1px solid rgba(5, 150, 105, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_LG};
-            }}
-        """)
-        audio_layout = QHBoxLayout(audio_container)
+        audio_section = self.create_audio_recording_section()
+        main_layout.addWidget(audio_section)
 
-        audio_label = QLabel("Voice Note:")
-        audio_label.setStyleSheet(f"""
-            font-weight: 600;
-            color: {ModernUITheme.TEXT_SECONDARY};
-        """)
-        audio_layout.addWidget(audio_label)
+        # Action buttons
+        button_section = self.create_dialog_buttons(dialog, form_section, audio_section)
+        main_layout.addWidget(button_section)
+
+        # Apply comprehensive styling
+        self.apply_ban_dialog_styles(dialog)
+
+        dialog.exec_()
+
+    def create_dialog_header(self, title, icon):
+        """Create a modern dialog header with icon and title"""
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("dialogIcon")
+        icon_label.setFixedSize(48, 48)
+        icon_label.setAlignment(Qt.AlignCenter)
+
+        # Title and subtitle
+        title_container = QWidget()
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+
+        title_label = QLabel(title)
+        title_label.setObjectName("dialogTitle")
+
+        subtitle_label = QLabel("Fill in the details to create a new ban record")
+        subtitle_label.setObjectName("dialogSubtitle")
+
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(subtitle_label)
+
+        header_layout.addWidget(icon_label)
+        header_layout.addWidget(title_container)
+        header_layout.addStretch()
+
+        return header_widget
+
+    def create_ban_form_section(self):
+        """Create the main form section with proper spacing and grouping"""
+        form_container = QFrame()
+        form_container.setObjectName("formContainer")
+
+        # Use QFormLayout for better field organization
+        form_layout = QFormLayout(form_container)
+        form_layout.setVerticalSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        form_layout.setHorizontalSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+        form_layout.setContentsMargins(32, 32, 32, 32)
+        form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        form_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        # Create form fields with consistent sizing
+        tanker_input = self.create_modern_line_edit("Enter tanker number (e.g., TR001)")
+        tanker_input.setObjectName("tankerInput")
+
+        reason_input = self.create_modern_text_edit("Enter detailed ban reason...")
+        reason_input.setObjectName("reasonInput")
+
+        type_combo = self.create_modern_combo_box(["temporary", "permanent", "permission", "reminder"])
+        type_combo.setObjectName("typeCombo")
+
+        start_date = self.create_modern_date_edit()
+        start_date.setDate(QDate.currentDate())
+        start_date.setObjectName("startDate")
+
+        end_date = self.create_modern_date_edit()
+        end_date.setDate(QDate.currentDate().addDays(30))
+        end_date.setObjectName("endDate")
+
+        # Create field labels with modern styling
+        tanker_label = self.create_form_label("Tanker Number:", "🚛", required=True)
+        reason_label = self.create_form_label("Ban Reason:", "📝", required=True)
+        type_label = self.create_form_label("Ban Type:", "🏷️")
+        start_label = self.create_form_label("Start Date:", "📅")
+        end_label = self.create_form_label("End Date:", "📅")
+
+        # Add fields to form layout
+        form_layout.addRow(tanker_label, tanker_input)
+        form_layout.addRow(reason_label, reason_input)
+        form_layout.addRow(type_label, type_combo)
+        form_layout.addRow(start_label, start_date)
+        form_layout.addRow(end_label, end_date)
+
+        # Store references for later use
+        form_container.tanker_input = tanker_input
+        form_container.reason_input = reason_input
+        form_container.type_combo = type_combo
+        form_container.start_date = start_date
+        form_container.end_date = end_date
+
+        return form_container
+
+    def create_modern_line_edit(self, placeholder):
+        """Create a modern styled line edit with consistent sizing"""
+        line_edit = QLineEdit()
+        line_edit.setPlaceholderText(placeholder)
+        line_edit.setObjectName("modernInput")
+        line_edit.setMinimumHeight(44)
+        line_edit.setMinimumWidth(300)
+        return line_edit
+
+    def create_modern_text_edit(self, placeholder):
+        """Create a modern styled text edit"""
+        text_edit = QTextEdit()
+        text_edit.setPlaceholderText(placeholder)
+        text_edit.setObjectName("modernTextEdit")
+        text_edit.setMinimumHeight(100)
+        text_edit.setMaximumHeight(120)
+        text_edit.setMinimumWidth(300)
+        return text_edit
+
+    def create_modern_combo_box(self, items):
+        """Create a modern styled combo box"""
+        combo = QComboBox()
+        combo.addItems(items)
+        combo.setObjectName("modernCombo")
+        combo.setMinimumHeight(44)
+        combo.setMinimumWidth(300)
+        return combo
+
+    def create_modern_date_edit(self):
+        """Create a modern styled date edit"""
+        date_edit = QDateEdit()
+        date_edit.setObjectName("modernDateEdit")
+        date_edit.setCalendarPopup(True)
+        date_edit.setMinimumHeight(44)
+        date_edit.setMinimumWidth(300)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        return date_edit
+
+    def create_form_label(self, text, icon, required=False):
+        """Create a modern form label with icon"""
+        label_widget = QWidget()
+        label_layout = QHBoxLayout(label_widget)
+        label_layout.setContentsMargins(0, 0, 8, 0)
+        label_layout.setSpacing(8)
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("fieldIcon")
+
+        # Text
+        text_label = QLabel(text)
+        text_label.setObjectName("fieldLabel")
+
+        if required:
+            text_label.setText(f"{text} <span style='color: {ModernUITheme.DANGER};'>*</span>")
+
+        label_layout.addStretch()
+        label_layout.addWidget(icon_label)
+        label_layout.addWidget(text_label)
+
+        return label_widget
+
+    def create_audio_recording_section(self):
+        """Create an enhanced audio recording section - WORKING VERSION"""
+        audio_container = QFrame()
+        audio_container.setObjectName("audioContainer")
+
+        audio_layout = QVBoxLayout(audio_container)
+        audio_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+        audio_layout.setContentsMargins(24, 20, 24, 20)
+
+        # Header
+        header_layout = QHBoxLayout()
+
+        audio_icon = QLabel("🎙️")
+        audio_icon.setObjectName("audioSectionIcon")
+
+        audio_title = QLabel("Voice Note (Optional)")
+        audio_title.setObjectName("audioSectionTitle")
+
+        header_layout.addWidget(audio_icon)
+        header_layout.addWidget(audio_title)
+        header_layout.addStretch()
+
+        # Status and controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Status indicator
+        status_container = QFrame()
+        status_container.setObjectName("statusContainer")
+        status_layout = QHBoxLayout(status_container)
+        status_layout.setContentsMargins(16, 8, 16, 8)
+
+        status_icon = QLabel("⚪")
+        status_icon.setObjectName("statusIcon")
 
         voice_status_label = QLabel("No recording")
-        voice_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_MUTED}; font-style: italic;")
-        audio_layout.addWidget(voice_status_label)
+        voice_status_label.setObjectName("statusLabel")
 
-        audio_layout.addStretch()
+        status_layout.addWidget(status_icon)
+        status_layout.addWidget(voice_status_label)
+        status_layout.addStretch()
 
-        record_voice_btn = QPushButton("🎙️ Record Voice")
-        record_voice_btn.setObjectName("voiceRecordButton")
+        # Record button
+        record_voice_btn = QPushButton("🎙️ Start Recording")
+        record_voice_btn.setObjectName("recordButton")
+        record_voice_btn.setMinimumHeight(40)
+        record_voice_btn.setMinimumWidth(160)
+
         if not AUDIO_AVAILABLE:
             record_voice_btn.setEnabled(False)
             record_voice_btn.setText("🎙️ Audio Not Available")
+            record_voice_btn.setToolTip("Audio recording is not available on this system")
 
+        # Play button (initially hidden)
+        play_voice_btn = QPushButton("▶️ Play Recording")
+        play_voice_btn.setObjectName("playButton")
+        play_voice_btn.setMinimumHeight(40)
+        play_voice_btn.setMinimumWidth(160)
+        play_voice_btn.hide()
+
+        controls_layout.addWidget(status_container)
+        controls_layout.addStretch()
+        controls_layout.addWidget(play_voice_btn)
+        controls_layout.addWidget(record_voice_btn)
+
+        audio_layout.addLayout(header_layout)
+        audio_layout.addLayout(controls_layout)
+
+        # Store recorded data reference for later access
         recorded_data = None
 
         def record_voice():
+            """Handle voice recording with proper implementation"""
             nonlocal recorded_data
-            audio_dialog = AudioRecordDialog(dialog)
-            if audio_dialog.exec_() == QDialog.Accepted:
-                recorded_data = audio_dialog.recorded_data
-                if recorded_data:
-                    voice_status_label.setText("✅ Voice recorded")
-                    voice_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
+            try:
+                logger.info("Opening audio record dialog")
+                audio_dialog = AudioRecordDialog(audio_container)
 
+                if audio_dialog.exec_() == QDialog.Accepted:
+                    recorded_data = audio_dialog.recorded_data
+                    if recorded_data:
+                        logger.info(f"Voice recorded successfully, size: {len(recorded_data)} bytes")
+                        # Update UI to show successful recording
+                        status_icon.setText("🟢")
+                        voice_status_label.setText("Voice recorded successfully")
+                        voice_status_label.setObjectName("statusLabelSuccess")
+                        record_voice_btn.setText("🎙️ Re-record")
+                        play_voice_btn.show()
+
+                        # Update container styling
+                        status_container.setObjectName("statusContainerSuccess")
+                        if hasattr(audio_container, 'style'):
+                            audio_container.style().unpolish(status_container)
+                            audio_container.style().polish(status_container)
+                            audio_container.style().unpolish(voice_status_label)
+                            audio_container.style().polish(voice_status_label)
+                    else:
+                        logger.warning("No audio data recorded")
+                else:
+                    logger.info("Audio recording cancelled by user")
+
+            except Exception as e:
+                logger.error(f"Error in record_voice: {e}")
+                QMessageBox.warning(audio_container, "Recording Error", f"Failed to record audio: {e}")
+
+        def play_voice():
+            """Handle voice playback with proper implementation"""
+            if recorded_data:
+                try:
+                    logger.info("Playing recorded voice note")
+                    voice_status_label.setText("Playing recording...")
+
+                    # Create temporary recorder for playback
+                    temp_recorder = AudioRecorder()
+
+                    def playback_callback(success, msg):
+                        voice_status_label.setText("Playback completed" if success else f"Playback failed: {msg}")
+                        temp_recorder.cleanup()
+
+                    temp_recorder.play_audio(recorded_data, playback_callback)
+
+                except Exception as e:
+                    logger.error(f"Error in play_voice: {e}")
+                    QMessageBox.warning(audio_container, "Playback Error", f"Failed to play audio: {e}")
+            else:
+                logger.warning("No recorded data available for playback")
+                QMessageBox.information(audio_container, "No Recording", "No audio recording available to play.")
+
+        # Connect button events
         record_voice_btn.clicked.connect(record_voice)
-        audio_layout.addWidget(record_voice_btn)
+        play_voice_btn.clicked.connect(play_voice)
 
-        layout.addWidget(audio_container)
+        # Store recorded data reference for later access
+        audio_container.get_recorded_data = lambda: recorded_data
 
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        logger.info("Audio recording section created successfully")
+        return audio_container
 
+    def create_dialog_buttons(self, dialog, form_section, audio_section):
+        """Create dialog action buttons with modern styling"""
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Info text
+        info_label = QLabel("* Required fields")
+        info_label.setObjectName("infoLabel")
+
+        button_layout.addWidget(info_label)
+        button_layout.addStretch()
+
+        # Cancel button
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("secondaryButton")
+        cancel_btn.setObjectName("cancelButton")
+        cancel_btn.setMinimumHeight(44)
+        cancel_btn.setMinimumWidth(100)
         cancel_btn.clicked.connect(dialog.reject)
 
-        save_btn = QPushButton("Save Ban")
-        save_btn.setObjectName("primaryButton")
+        # Save button
+        save_btn = QPushButton("💾 Save Ban Record")
+        save_btn.setObjectName("saveButton")
+        save_btn.setMinimumHeight(44)
+        save_btn.setMinimumWidth(160)
 
         def save_ban():
-            tanker = tanker_input.text().strip().upper()
-            reason = reason_input.toPlainText().strip()
-            ban_type = type_combo.currentText()
-            start_str = start_date.date().toString("yyyy-MM-dd")
-            end_str = end_date.date().toString("yyyy-MM-dd") if ban_type != "permanent" else None
+            # Get form data
+            tanker = form_section.tanker_input.text().strip().upper()
+            reason = form_section.reason_input.toPlainText().strip()
+            ban_type = form_section.type_combo.currentText()
+            start_str = form_section.start_date.date().toString("yyyy-MM-dd")
+            end_str = form_section.end_date.date().toString("yyyy-MM-dd") if ban_type != "permanent" else None
 
+            # Validation
             if not tanker or not reason:
-                QMessageBox.warning(dialog, "Input Error", "Please fill all required fields")
+                QMessageBox.warning(dialog, "Input Error",
+                                    "Please fill all required fields:\n• Tanker Number\n• Ban Reason")
                 return
 
+            # Get recorded audio data
+            recorded_data = audio_section.get_recorded_data()
             voice_filename = f"voice_{tanker}_{int(time.time())}.wav" if recorded_data else None
 
+            # Save to database
             success = self.db.add_ban_record(
                 tanker, reason, ban_type, start_str, end_str, self.user_info['username'],
                 recorded_data, voice_filename
             )
 
             if success:
-                QMessageBox.information(dialog, "Success", f"Ban record created for {tanker}")
+                QMessageBox.information(dialog, "Success",
+                                        f"Ban record created successfully for {tanker}")
                 dialog.accept()
                 self.load_bans_table()
                 self.refresh_dashboard()
                 self.status_bar.showMessage(f"Ban record added for {tanker}")
             else:
-                QMessageBox.critical(dialog, "Error", "Failed to create ban record")
+                QMessageBox.critical(dialog, "Error",
+                                     "Failed to create ban record. Please try again.")
 
         save_btn.clicked.connect(save_ban)
 
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addWidget(save_btn)
-        layout.addLayout(btn_layout)
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(save_btn)
 
-        # Apply modern input styles to the dialog
+        return button_container
+
+    def apply_ban_dialog_styles(self, dialog):
+        """Apply comprehensive modern styling to the ban dialog"""
         dialog.setStyleSheet(dialog.styleSheet() + f"""
-            #modernInput, #modernTextEdit {{
+            /* Dialog Header */
+            #dialogIcon {{
+                background-color: rgba(220, 38, 38, 0.1);
+                border-radius: {ModernUITheme.RADIUS_LG};
+                color: {ModernUITheme.DANGER};
+                font-size: {ModernUITheme.FONT_SIZE_2XL};
+                font-weight: bold;
+            }}
+
+            #dialogTitle {{
+                font-size: {ModernUITheme.FONT_SIZE_2XL};
+                font-weight: 700;
+                color: {ModernUITheme.TEXT_PRIMARY};
+                letter-spacing: -0.5px;
+            }}
+
+            #dialogSubtitle {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 400;
+            }}
+
+            /* Form Container */
+            #formContainer {{
+                background-color: {ModernUITheme.SURFACE};
+                border-radius: {ModernUITheme.RADIUS_LG};
+                border: 1px solid {ModernUITheme.BORDER_LIGHT};
+            }}
+
+            /* Form Labels */
+            #fieldIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_BASE};
+                color: {ModernUITheme.TEXT_MUTED};
+                min-width: 20px;
+            }}
+
+            #fieldLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                color: {ModernUITheme.TEXT_SECONDARY};
+                min-width: 120px;
+            }}
+
+            /* Form Inputs */
+            #modernInput, #modernTextEdit, #modernCombo, #modernDateEdit {{
                 border: 2px solid {ModernUITheme.BORDER};
                 border-radius: {ModernUITheme.RADIUS_MD};
                 padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
@@ -5789,33 +6503,146 @@ class MainWindow(QMainWindow):
                 color: {ModernUITheme.TEXT_PRIMARY};
                 font-weight: 500;
             }}
-            
-            #modernInput:focus, #modernTextEdit:focus {{
+
+            #modernInput:focus, #modernTextEdit:focus, #modernCombo:focus, #modernDateEdit:focus {{
                 border-color: {ModernUITheme.PRIMARY};
                 outline: none;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
             }}
-            
-            #voiceRecordButton {{
+
+            #modernInput::placeholder, #modernTextEdit::placeholder {{
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 400;
+            }}
+
+            /* Audio Recording Section */
+            #audioContainer {{
+                background-color: rgba(5, 150, 105, 0.05);
+                border: 2px solid rgba(5, 150, 105, 0.15);
+                border-radius: {ModernUITheme.RADIUS_LG};
+                margin-top: {ModernUITheme.SPACE_MD};
+            }}
+
+            #audioSectionIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_XL};
+                color: {ModernUITheme.SUCCESS};
+            }}
+
+            #audioSectionTitle {{
+                font-size: {ModernUITheme.FONT_SIZE_LG};
+                font-weight: 600;
+                color: {ModernUITheme.TEXT_PRIMARY};
+            }}
+
+            /* Status Container */
+            #statusContainer {{
+                background-color: rgba(156, 163, 175, 0.1);
+                border: 1px solid rgba(156, 163, 175, 0.2);
+                border-radius: {ModernUITheme.RADIUS_MD};
+                min-width: 180px;
+            }}
+
+            #statusContainerSuccess {{
+                background-color: rgba(5, 150, 105, 0.1);
+                border: 1px solid rgba(5, 150, 105, 0.3);
+                border-radius: {ModernUITheme.RADIUS_MD};
+            }}
+
+            #statusIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+            }}
+
+            #statusLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 500;
+            }}
+
+            #statusLabelSuccess {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.SUCCESS};
+                font-weight: 600;
+            }}
+
+            /* Audio Buttons */
+            #recordButton {{
                 background-color: {ModernUITheme.SUCCESS};
                 color: white;
                 border: none;
                 border-radius: {ModernUITheme.RADIUS_MD};
                 font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
+                font-weight: 600;
                 padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                transition: all 0.2s ease;
             }}
-            
-            #voiceRecordButton:hover {{
+
+            #recordButton:hover {{
                 background-color: #047857;
+                transform: translateY(-1px);
             }}
-            
-            #voiceRecordButton:disabled {{
+
+            #recordButton:disabled {{
                 background-color: {ModernUITheme.TEXT_DISABLED};
                 color: {ModernUITheme.TEXT_MUTED};
+                transform: none;
+            }}
+
+            #playButton {{
+                background-color: {ModernUITheme.INFO};
+                color: white;
+                border: none;
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                transition: all 0.2s ease;
+            }}
+
+            #playButton:hover {{
+                background-color: #0369a1;
+                transform: translateY(-1px);
+            }}
+
+            /* Dialog Buttons */
+            #infoLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_XS};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-style: italic;
+            }}
+
+            #cancelButton {{
+                background-color: transparent;
+                color: {ModernUITheme.TEXT_SECONDARY};
+                border: 2px solid {ModernUITheme.BORDER};
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+            }}
+
+            #cancelButton:hover {{
+                background-color: {ModernUITheme.SURFACE};
+                border-color: {ModernUITheme.TEXT_SECONDARY};
+            }}
+
+            #saveButton {{
+                background-color: {ModernUITheme.PRIMARY};
+                color: white;
+                border: none;
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_2XL};
+                transition: all 0.2s ease;
+            }}
+
+            #saveButton:hover {{
+                background-color: {ModernUITheme.PRIMARY_DARK};
+                transform: translateY(-1px);
+                box-shadow: {ModernUITheme.SHADOW_MD};
             }}
         """)
 
-        dialog.exec_()
 
     def apply_ban_filters(self):
         """Apply ban filters with proper filter handling"""
@@ -5956,20 +6783,27 @@ class MainWindow(QMainWindow):
     def load_bans_table(self):
         """Legacy method redirects to async version"""
         self.load_bans_table_async()
+
     def play_ban_voice(self, voice_data, tanker_number):
-        """Play voice note from ban management table"""
-        if voice_data and self.audio_recorder:
+        """Play voice note from ban management table - WORKING VERSION"""
+        if voice_data and hasattr(self, 'audio_recorder'):
             try:
                 self.status_bar.showMessage(f"Playing voice note for {tanker_number}...")
-                self.audio_recorder.play_audio(voice_data,
-                    lambda success, msg: self.status_bar.showMessage(
-                        f"Voice playback {'completed' if success else 'failed'} for {tanker_number}"
-                    )
-                )
+
+                def playback_callback(success, msg):
+                    result_msg = f"Voice playback {'completed' if success else 'failed'} for {tanker_number}"
+                    self.status_bar.showMessage(result_msg)
+                    logger.info(result_msg)
+
+                self.audio_recorder.play_audio(voice_data, playback_callback)
+
             except Exception as e:
                 logger.error(f"Error playing ban voice: {e}")
                 QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
-
+        else:
+            msg = "No voice data available" if not voice_data else "Audio system not available"
+            self.status_bar.showMessage(msg)
+            logger.warning(msg)
     def load_logs_table(self, filters=None):
         """Load logs table with proper filter handling"""
         try:
