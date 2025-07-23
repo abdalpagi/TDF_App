@@ -5,6 +5,8 @@ Updated: Modern typography, enhanced visual design, improved accessibility and r
 """
 #coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
 #coderabbitai please prioritize visual clarity, modern layout, and practical usability improvements.
+
+
 import sys
 import os
 import time
@@ -2732,6 +2734,7 @@ class UserManagementDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Operation failed: {str(e)}")
+# TODO: This part is causing UI freezing. Please suggest a refactor using QThread or async technique to prevent Not Responding.
 class DatabaseWorker(QThread):
     """CORRECTED Database Worker Thread for async database operations"""
 
@@ -3110,8 +3113,332 @@ class LoadingOverlay(QWidget):
         """Update spinner animation"""
         self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
         self.spinner_label.setText(self.spinner_chars[self.spinner_index])
+class AudioRecorder(QObject):
+    """Thread-safe audio recorder using PyAudio"""
 
+    recording_started = pyqtSignal()
+    recording_stopped = pyqtSignal()
+    recording_progress = pyqtSignal(float)  # Progress as percentage
+    error_occurred = pyqtSignal(str)
 
+    def __init__(self):
+        super().__init__()
+        self.audio = None
+        self.stream = None
+        self.frames = []
+        self.is_recording = False
+        self.temp_file = None
+
+        if AUDIO_AVAILABLE:
+            try:
+                self.audio = pyaudio.PyAudio()
+                logger.info("AudioRecorder initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize PyAudio: {e}")
+                self.error_occurred.emit(f"Audio initialization failed: {e}")
+
+    def start_recording(self):
+        """Start recording audio"""
+        if not AUDIO_AVAILABLE or not self.audio:
+            self.error_occurred.emit("Audio recording not available")
+            return False
+
+        try:
+            logger.info("Starting audio recording...")
+            self.frames = []
+            self.is_recording = True
+
+            # Create temporary file for recording
+            self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+            self.temp_file.close()
+
+            self.stream = self.audio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK,
+                stream_callback=self._audio_callback
+            )
+
+            self.stream.start_stream()
+            self.recording_started.emit()
+            logger.info("Audio recording started successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error starting recording: {e}")
+            self.error_occurred.emit(f"Failed to start recording: {e}")
+            return False
+
+    def _audio_callback(self, in_data, frame_count, time_info, status):
+        """Callback for audio stream"""
+        if self.is_recording:
+            self.frames.append(in_data)
+            # Emit progress (approximate based on frame count)
+            progress = min(len(self.frames) * CHUNK / (RATE * RECORD_SECONDS) * 100, 100)
+            self.recording_progress.emit(progress)
+            return (in_data, pyaudio.paContinue)
+        return (in_data, pyaudio.paComplete)
+
+    def stop_recording(self):
+        """Stop recording and save to file"""
+        if not self.is_recording:
+            return None
+
+        try:
+            logger.info("Stopping audio recording...")
+            self.is_recording = False
+
+            if self.stream:
+                self.stream.stop_stream()
+                self.stream.close()
+
+            # Save recording to WAV file
+            if self.frames and self.temp_file:
+                with wave.open(self.temp_file.name, 'wb') as wf:
+                    wf.setnchannels(CHANNELS)
+                    wf.setsampwidth(self.audio.get_sample_size(FORMAT))
+                    wf.setframerate(RATE)
+                    wf.writeframes(b''.join(self.frames))
+
+                logger.info(f"Recording saved to: {self.temp_file.name}")
+                self.recording_stopped.emit()
+                return self.temp_file.name
+
+        except Exception as e:
+            logger.error(f"Error stopping recording: {e}")
+            self.error_occurred.emit(f"Failed to save recording: {e}")
+
+        return None
+
+    def play_audio(self, audio_data_or_file, callback: Optional[Callable] = None):
+        """Play audio from data or file"""
+        if not AUDIO_AVAILABLE or not self.audio:
+            if callback:
+                callback(False, "Audio playback not available")
+            return
+
+        def _play_thread():
+            try:
+                logger.info("Starting audio playback...")
+
+                # Handle different input types
+                if isinstance(audio_data_or_file, str):
+                    # File path
+                    if not os.path.exists(audio_data_or_file):
+                        raise FileNotFoundError(f"Audio file not found: {audio_data_or_file}")
+                    audio_file = audio_data_or_file
+                elif isinstance(audio_data_or_file, bytes):
+                    # Raw audio data - save to temp file first
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+                    temp_file.write(audio_data_or_file)
+                    temp_file.close()
+                    audio_file = temp_file.name
+                else:
+                    raise ValueError("Invalid audio data type")
+
+                # Open and play WAV file
+                with wave.open(audio_file, 'rb') as wf:
+                    # Create output stream
+                    stream = self.audio.open(
+                        format=self.audio.get_format_from_width(wf.getsampwidth()),
+                        channels=wf.getnchannels(),
+                        rate=wf.getframerate(),
+                        output=True
+                    )
+
+                    # Play audio in chunks
+                    data = wf.readframes(CHUNK)
+                    while data:
+                        stream.write(data)
+                        data = wf.readframes(CHUNK)
+
+                    stream.stop_stream()
+                    stream.close()
+
+                logger.info("Audio playback completed successfully")
+                if callback:
+                    callback(True, "Playback completed")
+
+            except Exception as e:
+                logger.error(f"Error during playback: {e}")
+                if callback:
+                    callback(False, f"Playback failed: {e}")
+
+        # Run playback in separate thread to avoid blocking UI
+        thread = threading.Thread(target=_play_thread)
+        thread.daemon = True
+        thread.start()
+
+    def cleanup(self):
+        """Clean up resources"""
+        try:
+            if self.stream:
+                self.stream.close()
+            if self.audio:
+                self.audio.terminate()
+            if self.temp_file and os.path.exists(self.temp_file.name):
+                os.unlink(self.temp_file.name)
+            logger.info("AudioRecorder cleanup completed")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+class AudioRecordDialog(QDialog):
+    """Dialog for recording audio with real-time feedback"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.recorder = AudioRecorder()
+        self.recorded_file = None
+        self.recording_timer = QTimer()
+        self.recording_time = 0
+
+        self.setWindowTitle("Record Voice Note")
+        self.setModal(True)
+        self.setFixedSize(400, 200)
+
+        self.setup_ui()
+        self.connect_signals()
+
+        # Check if audio is available
+        if not AUDIO_AVAILABLE:
+            self.record_btn.setEnabled(False)
+            self.status_label.setText("Audio recording not available")
+
+    def setup_ui(self):
+        """Set up the dialog UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+
+        # Status label
+        self.status_label = QLabel("Ready to record")
+        self.status_label.setStyleSheet("font-size: 14px; color: #666;")
+        layout.addWidget(self.status_label)
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
+
+        # Time label
+        self.time_label = QLabel("00:00")
+        self.time_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
+        self.time_label.setAlignment(Qt.AlignCenter)  # Center alignment
+        layout.addWidget(self.time_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        self.record_btn = QPushButton("🎙️ Start Recording")
+        self.record_btn.setMinimumHeight(40)
+        self.record_btn.clicked.connect(self.toggle_recording)
+
+        self.play_btn = QPushButton("▶️ Play")
+        self.play_btn.setMinimumHeight(40)
+        self.play_btn.setEnabled(False)
+        self.play_btn.clicked.connect(self.play_recording)
+
+        self.save_btn = QPushButton("💾 Save")
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setEnabled(False)
+        self.save_btn.clicked.connect(self.accept)
+
+        self.cancel_btn = QPushButton("❌ Cancel")
+        self.cancel_btn.setMinimumHeight(40)
+        self.cancel_btn.clicked.connect(self.reject)
+
+        button_layout.addWidget(self.record_btn)
+        button_layout.addWidget(self.play_btn)
+        button_layout.addWidget(self.save_btn)
+        button_layout.addWidget(self.cancel_btn)
+
+        layout.addLayout(button_layout)
+
+    def connect_signals(self):
+        """Connect recorder signals to UI updates"""
+        self.recorder.recording_started.connect(self.on_recording_started)
+        self.recorder.recording_stopped.connect(self.on_recording_stopped)
+        self.recorder.recording_progress.connect(self.on_recording_progress)
+        self.recorder.error_occurred.connect(self.on_error)
+
+        # Timer for recording time display
+        self.recording_timer.timeout.connect(self.update_recording_time)
+
+    def toggle_recording(self):
+        """Toggle recording state"""
+        if not self.recorder.is_recording:
+            if self.recorder.start_recording():
+                self.recording_time = 0
+                self.recording_timer.start(1000)  # Update every second
+        else:
+            self.recorded_file = self.recorder.stop_recording()
+            self.recording_timer.stop()
+
+    def on_recording_started(self):
+        """Handle recording started signal"""
+        self.record_btn.setText("⏹️ Stop Recording")
+        self.status_label.setText("Recording... (Click stop when finished)")
+        self.progress_bar.setVisible(True)
+        self.play_btn.setEnabled(False)
+        self.save_btn.setEnabled(False)
+        logger.debug("Recording started - UI updated")
+
+    def on_recording_stopped(self):
+        """Handle recording stopped signal"""
+        self.record_btn.setText("🎙️ Start Recording")
+        self.status_label.setText("Recording completed")
+        self.progress_bar.setVisible(False)
+        self.play_btn.setEnabled(True)
+        self.save_btn.setEnabled(True)
+        logger.debug("Recording stopped - UI updated")
+
+    def on_recording_progress(self, progress):
+        """Handle recording progress update"""
+        self.progress_bar.setValue(int(progress))
+
+    def update_recording_time(self):
+        """Update recording time display"""
+        self.recording_time += 1
+        minutes = self.recording_time // 60
+        seconds = self.recording_time % 60
+        self.time_label.setText(f"{minutes:02d}:{seconds:02d}")
+
+        # Auto-stop after maximum time
+        if self.recording_time >= RECORD_SECONDS:
+            self.toggle_recording()
+
+    def play_recording(self):
+        """Play the recorded audio"""
+        if self.recorded_file:
+            self.status_label.setText("Playing recording...")
+            self.recorder.play_audio(
+                self.recorded_file,
+                lambda success, msg: self.status_label.setText(
+                    "Playback completed" if success else f"Playback failed: {msg}"
+                )
+            )
+
+    def on_error(self, error_message):
+        """Handle error from recorder"""
+        logger.error(f"Audio error: {error_message}")
+        QMessageBox.warning(self, "Audio Error", error_message)
+        self.status_label.setText(f"Error: {error_message}")
+
+    @property
+    def recorded_data(self):
+        """Get recorded audio data as bytes"""
+        if self.recorded_file and os.path.exists(self.recorded_file):
+            try:
+                with open(self.recorded_file, 'rb') as f:
+                    return f.read()
+            except Exception as e:
+                logger.error(f"Error reading recorded file: {e}")
+        return None
+
+    def closeEvent(self, event):
+        """Clean up when dialog is closed"""
+        self.recorder.cleanup()
+        super().closeEvent(event)
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
 
@@ -3195,7 +3522,6 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.sidebar)
 
         self.create_modern_content_area()
-
         main_layout.addWidget(self.content_area, 1)
 
     def create_modern_sidebar(self):
@@ -3758,21 +4084,6 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(str(value) if value else "")
                     self.logs_table.setItem(row, col, item)
 
-    def play_auto_verification_voice(self):
-        """Play voice note from auto verification page"""
-        if not hasattr(self, 'audio_recorder') or not self.audio_recorder:
-            logger.warning("Audio recorder not initialized.")
-            QMessageBox.warning(self, "Audio Error", "Audio system not ready.")
-            return
-
-        if hasattr(self, 'auto_current_voice_data') and self.auto_current_voice_data:
-            try:
-                self.auto_voice_info_label.setText("🔊 Playing voice note...")
-                self.audio_recorder.play_audio(self.auto_current_voice_data, self.on_auto_voice_finished)
-            except Exception as e:
-                logger.error(f"Error playing auto verification voice: {e}")
-                QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
-
     def update_dashboard_with_statistics(self, stats):
         """Update dashboard with statistics data safely."""
         try:
@@ -3844,8 +4155,8 @@ class MainWindow(QMainWindow):
 
         # Only create settings page if user has access
         if self.user_info['role'] in ['admin', 'supervisor']:
-           self.settings_page = self.create_modern_settings_page()
-           self.stacked_widget.addWidget(self.settings_page)
+            self.settings_page = self.create_modern_settings_page()
+            self.stacked_widget.addWidget(self.settings_page)
 
         self.stacked_widget.addWidget(self.dashboard_page)
         self.stacked_widget.addWidget(self.verification_page)
@@ -6027,6 +6338,15 @@ class MainWindow(QMainWindow):
         else:
             return ModernUITheme.PRIMARY
 
+    def play_auto_verification_voice(self):
+        """Play voice note from auto verification page"""
+        if hasattr(self, 'auto_current_voice_data') and self.auto_current_voice_data and self.audio_recorder:
+            try:
+                self.auto_voice_info_label.setText("🔊 Playing voice note...")
+                self.audio_recorder.play_audio(self.auto_current_voice_data, self.on_auto_voice_finished)
+            except Exception as e:
+                logger.error(f"Error playing auto verification voice: {e}")
+                QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
 
     def play_manual_verification_voice(self):
         """Play voice note from manual verification page"""
@@ -7425,4 +7745,3 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Unhandled exception: {e}")
         sys.exit(1)
-# Triggering CodeRabbit for unused code detection
