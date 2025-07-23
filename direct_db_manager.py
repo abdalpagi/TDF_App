@@ -3,6 +3,9 @@ TDF System - Enhanced Version with Modern UI, Fixed Filters and Role-Based Acces
 Features: Modern Professional UI, Fixed filter functionality, Role-based permissions, Database path configuration, User account management
 Updated: Modern typography, enhanced visual design, improved accessibility and readability
 """
+#coderabbitai Request Full UI Redesign – Login & Add Ban Pages + Overall Stylin
+#coderabbitai please prioritize visual clarity, modern layout, and practical usability improvements.
+
 
 import sys
 import os
@@ -12,7 +15,14 @@ import threading
 import sqlite3
 import json
 import hashlib
+import tempfile
+import wave
+from typing import Optional, Callable
+from PyQt5.QtCore import QThread, pyqtSignal
 import resources
+import queue
+import weakref
+from PyQt5.QtCore import QMutex, QWaitCondition, QPropertyAnimation, QEasingCurve
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 from typing import Optional, Dict, Any
@@ -23,7 +33,32 @@ import queue
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject
+from PyQt5.QtWidgets import QProgressBar
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Try to import audio libraries
+AUDIO_AVAILABLE = False
+try:
+    import pyaudio
+    AUDIO_AVAILABLE = True
+    logger.info("PyAudio is available")
+except ImportError:
+    logger.warning("PyAudio not available - audio features will be disabled")
+    pyaudio = None
+
+# Audio configuration
+CHUNK = 1024
+FORMAT = None
+CHANNELS = 1
+RATE = 44100
+RECORD_SECONDS = 30  # Maximum recording time
+
+if AUDIO_AVAILABLE:
+    FORMAT = pyaudio.paInt16
 # Database imports
 try:
     import pyodbc
@@ -39,7 +74,7 @@ try:
     AUDIO_AVAILABLE = True
 except ImportError as e:
     AUDIO_AVAILABLE = False
-
+# Test pull request to trigger CodeRabbit review
 # Configure logging
 os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
@@ -55,7 +90,7 @@ logger = logging.getLogger(__name__)
 
 # Default Configuration
 DEFAULT_CONFIG = {
-    "server_db_path": r"\\192.168.137.59\rfid\TruckAutoId.mdb",
+    "server_db_path": r"C:\Users\abdalbagi.a\Desktop\APPPPNEW\TruckAutoId_copy.accdb",
     "local_sqlite_path": r"C:\Users\abdalbagi.a\Desktop\APP\tdf_app.db",
     "connection_timeout": 3,
     "cache_timeout": 5,
@@ -845,8 +880,13 @@ class DatabaseManager:
         self.test_server_connection()
 
     def test_server_connection(self):
-        """Test server connection with timeout"""
+        """Test server connection - ENSURE THIS METHOD EXISTS"""
         try:
+            if not PYODBC_AVAILABLE:
+                self.server_available = False
+                logger.warning("pyodbc not available for server connection")
+                return
+
             with self._connection_lock:
                 with self.get_server_connection() as conn:
                     cursor = conn.cursor()
@@ -857,7 +897,6 @@ class DatabaseManager:
         except Exception as e:
             self.server_available = False
             logger.warning(f"Server connection failed: {e}")
-
     def init_sqlite(self):
         """Initialize SQLite database with schema migration support"""
         try:
@@ -1168,27 +1207,34 @@ class DatabaseManager:
             logger.error(f"Error adding ban record: {e}")
             return False
 
-    def get_all_bans(self, filters=None):
-        """Get all bans with improved filtering - Fixed filter logic"""
+    def get_all_bans(self, filters=None, exclude_blob=False):
+        """Get all bans with optional exclusion of BLOB for dashboard display"""
         try:
             with sqlite3.connect(self.sqlite_db, timeout=10) as conn:
                 cursor = conn.cursor()
 
-                query = """
-                    SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
-                           created_by, voice_recording
-                    FROM ban_records 
-                    WHERE is_active = 1
-                """
+                if exclude_blob:
+                    query = """
+                        SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
+                               created_by, voice_filename, created_at
+                        FROM ban_records 
+                        WHERE is_active = 1
+                    """
+                else:
+                    query = """
+                        SELECT id, tanker_number, ban_reason, ban_type, start_date, end_date, 
+                               created_by, voice_recording, voice_filename, created_at
+                        FROM ban_records 
+                        WHERE is_active = 1
+                    """
+
                 params = []
 
                 if filters:
-                    # Fixed: Date filter now works correctly with created_at field
                     if filters.get('start_date') and filters.get('end_date'):
                         query += " AND DATE(created_at) BETWEEN ? AND ?"
                         params.extend([filters['start_date'], filters['end_date']])
 
-                    # Fixed: Text filters now work with partial matches
                     if filters.get('reason'):
                         query += " AND LOWER(ban_reason) LIKE LOWER(?)"
                         params.append(f"%{filters['reason']}%")
@@ -1201,12 +1247,11 @@ class DatabaseManager:
                         query += " AND LOWER(tanker_number) LIKE LOWER(?)"
                         params.append(f"%{filters['tanker_number']}%")
 
-                query += " ORDER BY created_at DESC"
+                query += " ORDER BY created_at DESC LIMIT 10"
+                logger.info(f"Running SQL: {query} with params {params}")
 
                 cursor.execute(query, params)
-                results = cursor.fetchall()
-                logger.info(f"Ban query executed with {len(params)} parameters, returned {len(results)} results")
-                return results
+                return cursor.fetchall()
 
         except Exception as e:
             logger.error(f"Error getting bans: {e}")
@@ -1287,14 +1332,18 @@ class DatabaseManager:
 
                 query = "SELECT ban_type, created_at FROM ban_records WHERE is_active = 1"
                 params = []
+                logger.info(f"🔍 get_ban_statistics - Received filters: {filters}")
 
                 if filters and filters.get('start_date') and filters.get('end_date'):
                     query += " AND DATE(created_at) BETWEEN ? AND ?"
                     params.extend([filters['start_date'], filters['end_date']])
-
+                logger.info(f"🔍 Ban stats query with filter: {query}")
+                logger.info(f"🔍 Ban stats params: {params}")
                 cursor.execute(query, params)
                 results = cursor.fetchall()
-
+                logger.info(f"🔍 Ban stats results count: {len(results)}")
+                if results:
+                    logger.info(f"🔍 Sample dates: {[r[1] for r in results[:3]]}")
                 if not results:
                     return {'total_bans': 0, 'permanent': 0, 'temporary': 0, 'permission': 0, 'reminder': 0, 'active_bans': 0}
 
@@ -1340,13 +1389,16 @@ class DatabaseManager:
 
                 query = "SELECT status FROM logs WHERE status IS NOT NULL"
                 params = []
+                logger.info(f"🔍 get_verification_statistics - Received filters: {filters}")
 
                 if filters and filters.get('start_date') and filters.get('end_date'):
                     query += " AND DATE(timestamp) BETWEEN ? AND ?"
                     params.extend([filters['start_date'], filters['end_date']])
-
+                logger.info(f"🔍 Verify stats query with filter: {query}")
+                logger.info(f"🔍 Verify stats params: {params}")
                 cursor.execute(query, params)
                 results = cursor.fetchall()
+                logger.info(f"🔍 Verify stats results count: {len(results)}")
 
                 if not results:
                     return {'total': 0, 'allowed': 0, 'rejected': 0, 'conditional': 0, 'errors': 0, 'success_rate': 0}
@@ -1383,10 +1435,8 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting verification statistics: {e}")
             return {'total': 0, 'allowed': 0, 'rejected': 0, 'conditional': 0, 'errors': 0, 'success_rate': 0}
-
-
 class ModernLoginDialog(QDialog):
-    """Enhanced login dialog with modern UI design"""
+    """Enhanced login dialog with modern UI design and improved spacing"""
 
     def __init__(self, user_manager):
         super().__init__()
@@ -1401,156 +1451,296 @@ class ModernLoginDialog(QDialog):
         self.setFixedSize(1000, 650)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
+        # Main layout
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Left panel with modern design
+        # Left branding panel
+        left_panel = self.create_branding_panel()
+
+        # Right form panel
+        right_panel = self.create_form_panel()
+
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(right_panel)
+        self.setLayout(main_layout)
+
+        # Set up keyboard shortcuts
+        self.setup_keyboard_shortcuts()
+
+    def create_branding_panel(self):
+        """Create the left branding panel with improved spacing"""
         left_panel = QFrame()
         left_panel.setFixedWidth(450)
         left_panel.setObjectName("leftPanel")
 
         left_layout = QVBoxLayout()
         left_layout.setAlignment(Qt.AlignCenter)
-        left_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        left_layout.setSpacing(int(ModernUITheme.SPACE_4XL.replace('px', '')))
+        left_layout.setContentsMargins(40, 60, 40, 60)
 
-        # Modern logo design
+        # Logo container with better proportions
         logo_container = QFrame()
-        logo_container.setFixedSize(120, 120)
+        logo_container.setFixedSize(140, 140)
         logo_container.setObjectName("logoContainer")
+
         logo_layout = QVBoxLayout(logo_container)
         logo_layout.setContentsMargins(0, 0, 0, 0)
+        logo_layout.setAlignment(Qt.AlignCenter)
 
         logo_label = QLabel("🚛")
         logo_label.setAlignment(Qt.AlignCenter)
-        logo_label.setStyleSheet(f"font-size: {ModernUITheme.FONT_SIZE_5XL}; color: white; background: transparent;")
+        logo_label.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_5XL}; 
+            color: white; 
+            background: transparent;
+        """)
         logo_layout.addWidget(logo_label)
 
-        welcome_label = QLabel("TDF System")
-        welcome_label.setAlignment(Qt.AlignCenter)
-        welcome_label.setStyleSheet(f"""
+        # Brand title with improved typography
+        brand_title = QLabel("TDF System")
+        brand_title.setAlignment(Qt.AlignCenter)
+        brand_title.setStyleSheet(f"""
             font-size: {ModernUITheme.FONT_SIZE_4XL}; 
             font-weight: 700; 
             color: white; 
-            margin-bottom: {ModernUITheme.SPACE_MD};
-            letter-spacing: -0.5px;
+            letter-spacing: -0.8px;
+            margin-bottom: {ModernUITheme.SPACE_LG};
         """)
 
-        subtitle_label = QLabel("Professional Vehicle Management\nModern UI • Enhanced Security • Real-time Monitoring")
-        subtitle_label.setAlignment(Qt.AlignCenter)
-        subtitle_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_LG}; 
+        # Subtitle with better line spacing
+        subtitle = QLabel("Professional Vehicle Management")
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_XL}; 
             color: rgba(255, 255, 255, 0.9); 
-            line-height: 1.6;
-            font-weight: 400;
+            font-weight: 500;
+            margin-bottom: {ModernUITheme.SPACE_2XL};
         """)
 
-        feature_label = QLabel(
-            "✓ Fixed Filters & Enhanced Search\n✓ Role-Based Access Control\n✓ Database Configuration\n✓ Modern Professional Interface")
-        feature_label.setAlignment(Qt.AlignCenter)
-        feature_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            color: rgba(255, 255, 255, 0.8); 
-            line-height: 1.8;
-            margin-top: {ModernUITheme.SPACE_2XL};
+        # Feature highlights with icons
+        features = QLabel(
+            "✨ Modern Professional Interface\n🔒 Enhanced Security\n📊 Real-time Monitoring\n🔍 Advanced Search & Filters")
+        features.setAlignment(Qt.AlignCenter)
+        features.setStyleSheet(f"""
+            font-size: {ModernUITheme.FONT_SIZE_BASE}; 
+            color: rgba(255, 255, 255, 0.85); 
+            line-height: 2.0;
             font-weight: 400;
         """)
 
         left_layout.addWidget(logo_container)
-        left_layout.addWidget(welcome_label)
-        left_layout.addWidget(subtitle_label)
-        left_layout.addWidget(feature_label)
-        left_panel.setLayout(left_layout)
+        left_layout.addWidget(brand_title)
+        left_layout.addWidget(subtitle)
+        left_layout.addWidget(features)
+        left_layout.addStretch()
 
-        # Right panel with modern form design
+        left_panel.setLayout(left_layout)
+        return left_panel
+
+    def create_form_panel(self):
+        """Create the right form panel with improved layout and spacing"""
         right_panel = QFrame()
         right_panel.setObjectName("rightPanel")
 
         right_layout = QVBoxLayout()
-        right_layout.setAlignment(Qt.AlignCenter)
+        right_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
         right_layout.setContentsMargins(60, 40, 60, 40)
 
-        # Close button
+        # Header with close button
+        header = self.create_header()
+
+        # Main form content
+        form_content = self.create_form_content()
+
+        right_layout.addWidget(header)
+        right_layout.addStretch(1)
+        right_layout.addWidget(form_content)
+        right_layout.addStretch(2)
+
+        right_panel.setLayout(right_layout)
+        return right_panel
+
+    def create_header(self):
+        """Create header with close button"""
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        header_layout.addStretch()
+
+        # Close button with better styling
         close_btn = QPushButton("✕")
-        close_btn.setFixedSize(40, 40)
+        close_btn.setFixedSize(44, 44)
         close_btn.setObjectName("closeButton")
         close_btn.clicked.connect(self.reject)
+        close_btn.setToolTip("Close")
 
-        header_layout = QHBoxLayout()
-        header_layout.addStretch()
         header_layout.addWidget(close_btn)
+        return header_widget
 
-        login_title = QLabel("Welcome Back")
-        login_title.setAlignment(Qt.AlignCenter)
-        login_title.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_3XL}; 
-            color: {ModernUITheme.TEXT_PRIMARY}; 
-            margin-bottom: {ModernUITheme.SPACE_4XL};
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        """)
+    def create_form_content(self):
+        """Create the main form content with improved spacing and layout"""
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+        content_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Modern form inputs
-        form_container = QFrame()
-        form_container.setObjectName("formContainer")
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        # Welcome title
+        title = QLabel("Welcome Back")
+        title.setAlignment(Qt.AlignCenter)
+        title.setObjectName("welcomeTitle")
+
+        # Form container
+        form_container = self.create_form_inputs()
+
+        # Action buttons
+        actions_container = self.create_action_buttons()
+
+        # Error display
+        self.error_label = QLabel()
+        self.error_label.setObjectName("errorLabel")
+        self.error_label.setWordWrap(True)
+        self.error_label.setAlignment(Qt.AlignCenter)
+        self.error_label.hide()
+
+        content_layout.addWidget(title)
+        content_layout.addWidget(form_container)
+        content_layout.addWidget(actions_container)
+        content_layout.addWidget(self.error_label)
+
+        return content_widget
+
+    def create_form_inputs(self):
+        """Create form inputs with improved spacing and visual hierarchy"""
+        form_widget = QWidget()
+        form_layout = QVBoxLayout(form_widget)
+        form_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
         form_layout.setContentsMargins(0, 0, 0, 0)
 
         # Username field
-        username_label = QLabel("Username")
-        username_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            font-weight: 600; 
-            color: {ModernUITheme.TEXT_SECONDARY};
-            margin-bottom: {ModernUITheme.SPACE_SM};
-        """)
+        username_group = self.create_input_group(
+            label_text="Username",
+            placeholder="Enter your username",
+            icon="👤",
+            default_value="admin"
+        )
+        self.username_input = username_group['input']
 
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter your username")
-        self.username_input.setObjectName("modernInput")
-        self.username_input.setText("admin")  # Default for testing
+        # Password field
+        password_group = self.create_password_input_group()
+        self.password_input = password_group['input']
+        self.toggle_password_btn = password_group['toggle_btn']
 
-        # Add username icon
-        username_container = QFrame()
-        username_container.setObjectName("inputContainer")
-        username_layout = QHBoxLayout(username_container)
-        username_layout.setContentsMargins(15, 0, 15, 0)
-        username_icon = QLabel("👤")
-        username_icon.setStyleSheet("font-size: 16px;")
-        username_layout.addWidget(username_icon)
-        username_layout.addWidget(self.username_input)
-        username_layout.setSpacing(10)
+        # Remember me section
+        remember_section = self.create_remember_section()
 
-        password_label = QLabel("Password")
-        password_label.setStyleSheet(f"""
-                    font-size: {ModernUITheme.FONT_SIZE_SM}; 
-                    font-weight: 600; 
-                    color: {ModernUITheme.TEXT_SECONDARY};
-                    margin-bottom: {ModernUITheme.SPACE_SM};
-                """)
+        form_layout.addWidget(username_group['widget'])
+        form_layout.addWidget(password_group['widget'])
+        form_layout.addWidget(remember_section)
 
-        # Create password container
-        password_container = QFrame()
-        password_container.setObjectName("inputContainer")
-        password_layout = QHBoxLayout(password_container)
-        password_layout.setContentsMargins(15, 0, 15, 0)
+        return form_widget
 
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("Enter your password")
-        self.password_input.setObjectName("modernInput")
-        self.password_input.setText("admin123")
+    def create_input_group(self, label_text, placeholder, icon, default_value=""):
+        """Create a labeled input group with consistent spacing"""
+        group_widget = QWidget()
+        group_layout = QVBoxLayout(group_widget)
+        group_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        group_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Password toggle button
-        self.toggle_password_btn = QToolButton()
-        self.toggle_password_btn.setCursor(Qt.PointingHandCursor)
-        self.toggle_password_btn.setFixedSize(30, 30)
-        self.toggle_password_btn.setObjectName("togglePasswordButton")
-        self.toggle_password_btn.clicked.connect(self.toggle_password_visibility)
+        # Label
+        label = QLabel(label_text)
+        label.setObjectName("inputLabel")
 
-        password_layout.addWidget(self.password_input)
-        password_layout.addWidget(self.toggle_password_btn)
+        # Input container
+        container = QFrame()
+        container.setObjectName("inputContainer")
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(20, 0, 20, 0)
+        container_layout.setSpacing(12)
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("inputIcon")
+
+        # Input field
+        input_field = QLineEdit()
+        input_field.setPlaceholderText(placeholder)
+        input_field.setObjectName("modernInput")
+        if default_value:
+            input_field.setText(default_value)
+
+        container_layout.addWidget(icon_label)
+        container_layout.addWidget(input_field)
+
+        group_layout.addWidget(label)
+        group_layout.addWidget(container)
+
+        return {
+            'widget': group_widget,
+            'input': input_field,
+            'container': container
+        }
+
+    def create_password_input_group(self):
+        """Create password input with toggle visibility button"""
+        group_widget = QWidget()
+        group_layout = QVBoxLayout(group_widget)
+        group_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        group_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Label
+        label = QLabel("Password")
+        label.setObjectName("inputLabel")
+
+        # Input container
+        container = QFrame()
+        container.setObjectName("inputContainer")
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(20, 0, 20, 0)
+        container_layout.setSpacing(12)
+
+        # Lock icon
+        icon_label = QLabel("🔒")
+        icon_label.setObjectName("inputIcon")
+
+        # Password input
+        password_input = QLineEdit()
+        password_input.setEchoMode(QLineEdit.Password)
+        password_input.setPlaceholderText("Enter your password")
+        password_input.setObjectName("modernInput")
+        password_input.setText("")
+
+        # Toggle button
+        toggle_btn = QToolButton()
+        toggle_btn.setText("👁")
+        toggle_btn.setObjectName("togglePasswordButton")
+        toggle_btn.setFixedSize(32, 32)
+        toggle_btn.setCursor(Qt.PointingHandCursor)
+        toggle_btn.clicked.connect(self.toggle_password_visibility)
+        toggle_btn.setToolTip("Show/Hide password")
+
+        container_layout.addWidget(icon_label)
+        container_layout.addWidget(password_input)
+        container_layout.addWidget(toggle_btn)
+
+        group_layout.addWidget(label)
+        group_layout.addWidget(container)
+
+        return {
+            'widget': group_widget,
+            'input': password_input,
+            'toggle_btn': toggle_btn
+        }
+
+    def create_remember_section(self):
+        """Create remember me and forgot password section"""
+        section_widget = QWidget()
+        section_layout = QHBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
         # Remember me checkbox
         remember_me = QCheckBox("Remember me")
         remember_me.setObjectName("rememberCheckbox")
@@ -1558,260 +1748,323 @@ class ModernLoginDialog(QDialog):
 
         # Forgot password link
         forgot_password = QLabel(
-            "<a href='#' style='text-decoration:none; color: " + ModernUITheme.PRIMARY + ";'>Forgot password?</a>")
+            f"<a href='#' style='text-decoration:none; color: {ModernUITheme.PRIMARY};'>Forgot password?</a>")
+        forgot_password.setObjectName("forgotPasswordLink")
         forgot_password.setCursor(Qt.PointingHandCursor)
         forgot_password.setOpenExternalLinks(False)
         forgot_password.linkActivated.connect(self.show_password_reset)
 
-        # Remember me + Forgot password layout
-        remember_layout = QHBoxLayout()
-        remember_layout.addWidget(remember_me)
-        remember_layout.addStretch()
-        remember_layout.addWidget(forgot_password)
+        section_layout.addWidget(remember_me)
+        section_layout.addStretch()
+        section_layout.addWidget(forgot_password)
 
-        # Login button with loading animation
+        return section_widget
+
+    def create_action_buttons(self):
+        """Create action buttons with loading state"""
+        actions_widget = QWidget()
+        actions_layout = QVBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(0, 0, 0, 0)
+        actions_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Login button container for centering
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(15)
+
+        # Loading spinner (hidden by default)
+        self.loading_spinner = QLabel()
+        self.loading_spinner.setFixedSize(24, 24)
+        self.loading_spinner.setObjectName("loadingSpinner")
+        self.loading_spinner.hide()
+
+        # Login button
         self.login_btn = QPushButton("Sign In")
         self.login_btn.setObjectName("primaryButton")
         self.login_btn.clicked.connect(self.login)
         self.login_btn.setDefault(True)
 
-        # Create loading spinner (hidden by default)
-        self.loading_spinner = QLabel()
-        self.loading_spinner.setFixedSize(20, 20)
-        self.loading_spinner.setObjectName("loadingSpinner")
-        self.loading_spinner.hide()
-
-        # Button layout to contain both button and spinner
-        button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(self.loading_spinner)
         button_layout.addWidget(self.login_btn)
         button_layout.addStretch()
-        button_layout.setSpacing(15)
 
-        # Error message label
-        self.error_label = QLabel()
-        self.error_label.setObjectName("errorLabel")
-        self.error_label.setWordWrap(True)
-        self.error_label.setAlignment(Qt.AlignCenter)
+        actions_layout.addWidget(button_container)
+
+        return actions_widget
+
+    def setup_keyboard_shortcuts(self):
+        """Set up keyboard shortcuts for better accessibility"""
+        self.password_input.returnPressed.connect(self.login)
+        self.username_input.returnPressed.connect(self.password_input.setFocus)
+
+        # ESC to close
+        escape_shortcut = QShortcut(QKeySequence("Escape"), self)
+        escape_shortcut.activated.connect(self.reject)
+
+    def toggle_password_visibility(self):
+        """Toggle password visibility with improved visual feedback"""
+        self.is_password_visible = not self.is_password_visible
+        if self.is_password_visible:
+            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.toggle_password_btn.setText("🙈")
+            self.toggle_password_btn.setToolTip("Hide password")
+        else:
+            self.password_input.setEchoMode(QLineEdit.Password)
+            self.toggle_password_btn.setText("👁")
+            self.toggle_password_btn.setToolTip("Show password")
+
+    def show_password_reset(self):
+        """Show password reset dialog"""
+        QMessageBox.information(
+            self,
+            "Password Reset",
+            "Password reset functionality would be implemented here.\n\n"
+            "For now, please contact your system administrator.",
+            QMessageBox.Ok
+        )
+
+    def login(self):
+        """Handle login with improved validation and error handling"""
+        username = self.username_input.text().strip()
+        password = self.password_input.text().strip()
+
+        # Validation
+        if not username:
+            self.show_error("Please enter your username")
+            self.username_input.setFocus()
+            return
+        if not password:
+            self.show_error("Please enter your password")
+            self.password_input.setFocus()
+            return
+
+        # Clear previous errors
         self.error_label.hide()
 
-        form_layout.addWidget(username_label)
-        form_layout.addWidget(username_container)
-        form_layout.addWidget(password_label)
-        form_layout.addWidget(password_container)
-        form_layout.addLayout(remember_layout)
-        form_layout.addLayout(button_layout)
-        form_layout.addWidget(self.error_label)
+        # Show loading state
+        self.set_loading(True)
 
-        # Info section with modern styling
-        info_container = QFrame()
-        info_container.setObjectName("infoContainer")
-        info_layout = QVBoxLayout(info_container)
-        info_layout.setSpacing(10)
+        try:
+            # Authenticate user
+            self.user_info = self.user_manager.authenticate_user(username, password)
 
-        info_label = QLabel("Default Credentials")
-        info_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_SM}; 
-            font-weight: 600; 
-            color: {ModernUITheme.TEXT_SECONDARY};
-            margin-bottom: {ModernUITheme.SPACE_SM};
-        """)
+            if self.user_info:
+                logger.info(f"Login successful for: {username}")
+                self.accept()
+            else:
+                # Enhanced error reporting
+                error_msg = self.get_detailed_error_message(username)
+                self.show_error(error_msg)
+                logger.warning(f"Login failed for user: {username}")
 
-        credentials_label = QLabel("admin / admin123 • supervisor / supervisor123 • operator / operator123")
-        credentials_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_XS}; 
-            color: {ModernUITheme.TEXT_MUTED}; 
-            font-family: {ModernUITheme.FONT_FAMILY_MONO};
-            background-color: {ModernUITheme.SURFACE};
-            padding: {ModernUITheme.SPACE_SM};
-            border-radius: {ModernUITheme.RADIUS_SM};
-            border: 1px solid {ModernUITheme.BORDER_LIGHT};
-        """)
+        except Exception as e:
+            error_msg = f"Login error: {str(e)}"
+            logger.error(f"Login exception for {username}: {e}")
+            self.show_error(error_msg)
 
-        role_info_label = QLabel("Operator: Basic access • Supervisor: Settings access • Admin: Full access")
-        role_info_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_XS}; 
-            color: {ModernUITheme.TEXT_MUTED}; 
-            margin-top: {ModernUITheme.SPACE_SM};
-        """)
+        finally:
+            self.set_loading(False)
 
-        # Reset database button with modern styling
-        reset_btn = QPushButton("🔄 Reset Database")
-        reset_btn.setObjectName("secondaryButton")
-        reset_btn.setToolTip("Reset user database and recreate default users")
-        reset_btn.clicked.connect(self.reset_user_database)
+    def get_detailed_error_message(self, username):
+        """Get detailed error message based on user status"""
+        try:
+            with sqlite3.connect(self.user_manager.db_path, timeout=10) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT username, is_active FROM users WHERE username = ?", (username,))
+                user_check = cursor.fetchone()
 
-        info_layout.addWidget(info_label)
-        info_layout.addWidget(credentials_label)
-        info_layout.addWidget(role_info_label)
-        info_layout.addWidget(reset_btn)
+                if user_check:
+                    if user_check[1] == 0:
+                        return f"Account '{username}' is inactive. Please contact administrator."
+                    else:
+                        return f"Invalid password for user '{username}'"
+                else:
+                    return f"User '{username}' not found"
+        except Exception as e:
+            logger.error(f"Error checking user existence: {e}")
+            return f"Authentication failed for '{username}'"
 
-        right_layout.addLayout(header_layout)
-        right_layout.addWidget(login_title)
-        right_layout.addWidget(form_container)
-        right_layout.addStretch()
-        right_layout.addWidget(info_container)
-        right_panel.setLayout(right_layout)
+    def show_error(self, message):
+        """Show error message with animation effect"""
+        self.error_label.setText(message)
+        self.error_label.show()
 
-        main_layout.addWidget(left_panel)
-        main_layout.addWidget(right_panel)
-        self.setLayout(main_layout)
+        # Optional: Add a shake animation effect (requires QPropertyAnimation)
+        # self.shake_error_label()
 
-        self.password_input.returnPressed.connect(self.login)
+    def set_loading(self, loading):
+        """Set loading state with visual feedback"""
+        if loading:
+            self.login_btn.setText("Authenticating...")
+            self.login_btn.setEnabled(False)
+            self.loading_spinner.show()
+            # Disable inputs during authentication
+            self.username_input.setEnabled(False)
+            self.password_input.setEnabled(False)
+        else:
+            self.login_btn.setText("Sign In")
+            self.login_btn.setEnabled(True)
+            self.loading_spinner.hide()
+            # Re-enable inputs
+            self.username_input.setEnabled(True)
+            self.password_input.setEnabled(True)
+
+        QApplication.processEvents()
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
 
-            #leftPanel {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                    stop:0 {ModernUITheme.PRIMARY}, stop:1 {ModernUITheme.PRIMARY_LIGHT});
-                border-top-left-radius: {ModernUITheme.RADIUS_XL};
-                border-bottom-left-radius: {ModernUITheme.RADIUS_XL};
-            }}
+               #leftPanel {{
+                   background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                       stop:0 {ModernUITheme.PRIMARY}, stop:1 {ModernUITheme.PRIMARY_LIGHT});
+                   border-top-left-radius: {ModernUITheme.RADIUS_XL};
+                   border-bottom-left-radius: {ModernUITheme.RADIUS_XL};
+               }}
 
-            #logoContainer {{
-                background-color: rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_XL};
-                border: 2px solid rgba(255, 255, 255, 0.2);
-            }}
+               #logoContainer {{
+                   background-color: rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_XL};
+                   border: 2px solid rgba(255, 255, 255, 0.2);
+               }}
 
-            #rightPanel {{
-                background-color: {ModernUITheme.BACKGROUND};
-                border-top-right-radius: {ModernUITheme.RADIUS_XL};
-                border-bottom-right-radius: {ModernUITheme.RADIUS_XL};
-            }}
+               #rightPanel {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   border-top-right-radius: {ModernUITheme.RADIUS_XL};
+                   border-bottom-right-radius: {ModernUITheme.RADIUS_XL};
+               }}
 
-            #closeButton {{
-                background-color: transparent;
-                border: none;
-                color: {ModernUITheme.TEXT_MUTED};
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                font-weight: bold;
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
+               #closeButton {{
+                   background-color: transparent;
+                   border: none;
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   font-weight: bold;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
 
-            #closeButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-            }}
+               #closeButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+               }}
 
-            #formContainer {{
-                background-color: transparent;
-            }}
+               #formContainer {{
+                   background-color: transparent;
+               }}
 
-            #inputContainer {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
+               #inputContainer {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
 
-            #modernInput {{
-                border: none;
-                padding: {ModernUITheme.SPACE_LG} 0;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
+               #modernInput {{
+                   border: none;
+                   padding: {ModernUITheme.SPACE_LG} 0;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
 
-            #modernInput:focus {{
-                outline: none;
-            }}
+               #modernInput:focus {{
+                   outline: none;
+               }}
 
-            #inputContainer:focus-within {{
-                border-color: {ModernUITheme.PRIMARY};
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            }}
+               #inputContainer:focus-within {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+               }}
 
-            #modernInput::placeholder {{
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
+               #modernInput::placeholder {{
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
 
-            #togglePasswordButton {{
-                background-color: transparent;
-                border: none;
-                padding: 0;
-                margin: 0;
-                color: {ModernUITheme.TEXT_MUTED};
-                qproperty-icon: url(:/icons/eye_closed.svg);
-                qproperty-iconSize: 20px;
-            }}
+               #togglePasswordButton {{
+                   background-color: transparent;
+                   border: none;
+                   padding: 0;
+                   margin: 0;
+                   color: {ModernUITheme.TEXT_MUTED};
+                   qproperty-icon: url(:/icons/eye_closed.svg);
+                   qproperty-iconSize: 20px;
+               }}
 
-            #togglePasswordButton:hover {{
-                color: {ModernUITheme.PRIMARY};
-            }}
+               #togglePasswordButton:hover {{
+                   color: {ModernUITheme.PRIMARY};
+               }}
 
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-weight: 600;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
-                min-height: 48px;
-                min-width: 120px;
-            }}
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-weight: 600;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
+                   min-height: 48px;
+                   min-width: 120px;
+               }}
 
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
 
-            #primaryButton:pressed {{
-                transform: translateY(0px);
-            }}
+               #primaryButton:pressed {{
+                   transform: translateY(0px);
+               }}
 
-            #secondaryButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                margin-top: {ModernUITheme.SPACE_MD};
-            }}
+               #secondaryButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   margin-top: {ModernUITheme.SPACE_MD};
+               }}
 
-            #secondaryButton:hover {{
-                background-color: #B45309;
-            }}
+               #secondaryButton:hover {{
+                   background-color: #B45309;
+               }}
 
-            #infoContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
+               #infoContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
 
-            #errorLabel {{
-                color: {ModernUITheme.DANGER};
-                background-color: rgba(220, 38, 38, 0.1);
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_MD};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                border: 1px solid rgba(220, 38, 38, 0.2);
-            }}
+               #errorLabel {{
+                   color: {ModernUITheme.DANGER};
+                   background-color: rgba(220, 38, 38, 0.1);
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_MD};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   border: 1px solid rgba(220, 38, 38, 0.2);
+               }}
 
-            #loadingSpinner {{
-                border: 2px solid rgba(59, 130, 246, 0.3);
-                border-radius: 50%;
-                border-top: 2px solid {ModernUITheme.PRIMARY};
-                width: 20px;
-                height: 20px;
-                animation: spin 1s linear infinite;
-            }}
+               #loadingSpinner {{
+                   border: 2px solid rgba(59, 130, 246, 0.3);
+                   border-radius: 50%;
+                   border-top: 2px solid {ModernUITheme.PRIMARY};
+                   width: 20px;
+                   height: 20px;
+                   animation: spin 1s linear infinite;
+               }}
 
-            @keyframes spin {{
-                0% {{ transform: rotate(0deg); }}
-                100% {{ transform: rotate(360deg); }}
-            }}
-        """)
+               @keyframes spin {{
+                   0% {{ transform: rotate(0deg); }}
+                   100% {{ transform: rotate(360deg); }}
+               }}
+           """)
 
     def toggle_password_visibility(self):
         """Toggle password visibility with icon change"""
@@ -1822,6 +2075,7 @@ class ModernLoginDialog(QDialog):
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
             self.toggle_password_btn.setIcon(QIcon(":/icons/eye_closed.svg"))
+
     def show_password_reset(self):
         """Show password reset dialog (stub)"""
         QMessageBox.information(self, "Password Reset",
@@ -1933,6 +2187,7 @@ class ModernLoginDialog(QDialog):
             error_msg = f"Error resetting database: {str(e)}"
             logger.error(error_msg)
             QMessageBox.critical(self, "Reset Error", error_msg)
+
 class AudioRecordDialog(QDialog):
     """Modern audio recording dialog"""
 
@@ -2004,104 +2259,104 @@ class AudioRecordDialog(QDialog):
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
-            
-            #dialogHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                text-align: center;
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #statusContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #statusLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                text-align: center;
-                font-weight: 500;
-            }}
-            
-            #recordButton {{
-                background-color: {ModernUITheme.ERROR};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 56px;
-            }}
-            
-            #recordButton:hover {{
-                background-color: #B91C1C;
-            }}
-            
-            #recordButton:disabled {{
-                background-color: {ModernUITheme.TEXT_DISABLED};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #playButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #playButton:hover {{
-                background-color: #047857;
-            }}
-            
-            #playButton:disabled {{
-                background-color: {ModernUITheme.TEXT_DISABLED};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #secondaryButton {{
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #secondaryButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                border-color: {ModernUITheme.TEXT_MUTED};
-            }}
-        """)
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
+
+               #dialogHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   text-align: center;
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #statusContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #statusLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   text-align: center;
+                   font-weight: 500;
+               }}
+
+               #recordButton {{
+                   background-color: {ModernUITheme.ERROR};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_LG} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 56px;
+               }}
+
+               #recordButton:hover {{
+                   background-color: #B91C1C;
+               }}
+
+               #recordButton:disabled {{
+                   background-color: {ModernUITheme.TEXT_DISABLED};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #playButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #playButton:hover {{
+                   background-color: #047857;
+               }}
+
+               #playButton:disabled {{
+                   background-color: {ModernUITheme.TEXT_DISABLED};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #secondaryButton {{
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #secondaryButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-color: {ModernUITheme.TEXT_MUTED};
+               }}
+           """)
 
     def toggle_recording(self):
         if not self.recorder:
@@ -2302,130 +2557,130 @@ class UserManagementDialog(QDialog):
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-            }}
-            
-            #dialogHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #formContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #fieldLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin-bottom: {ModernUITheme.SPACE_SM};
-            }}
-            
-            #modernInput {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
-            
-            #modernInput:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            #modernInput:disabled {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_MUTED};
-            }}
-            
-            #modernCombo {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                min-height: 20px;
-                font-weight: 500;
-            }}
-            
-            #modernCombo:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #modernCombo::drop-down {{
-                border: none;
-                width: 20px;
-            }}
-            
-            #modernCombo::down-arrow {{
-                image: none;
-                border: none;
-                width: 12px;
-                height: 12px;
-            }}
-            
-            #modernCheckbox {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-            }}
-            
-            #modernCheckbox::indicator {{
-                width: 18px;
-                height: 18px;
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: 4px;
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
-            
-            #modernCheckbox::indicator:checked {{
-                background-color: {ModernUITheme.PRIMARY};
-                border-color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #primaryButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #primaryButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #secondaryButton {{
-                background-color: transparent;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                min-height: 44px;
-            }}
-            
-            #secondaryButton:hover {{
-                background-color: {ModernUITheme.SURFACE};
-                border-color: {ModernUITheme.TEXT_MUTED};
-            }}
-        """)
+               QDialog {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+               }}
+
+               #dialogHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #formContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_2XL};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #fieldLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   margin-bottom: {ModernUITheme.SPACE_SM};
+               }}
+
+               #modernInput {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
+
+               #modernInput:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               #modernInput:disabled {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_MUTED};
+               }}
+
+               #modernCombo {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   min-height: 20px;
+                   font-weight: 500;
+               }}
+
+               #modernCombo:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+               }}
+
+               #modernCombo::drop-down {{
+                   border: none;
+                   width: 20px;
+               }}
+
+               #modernCombo::down-arrow {{
+                   image: none;
+                   border: none;
+                   width: 12px;
+                   height: 12px;
+               }}
+
+               #modernCheckbox {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+               }}
+
+               #modernCheckbox::indicator {{
+                   width: 18px;
+                   height: 18px;
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: 4px;
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
+
+               #modernCheckbox::indicator:checked {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   border-color: {ModernUITheme.PRIMARY};
+               }}
+
+               #primaryButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #primaryButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #secondaryButton {{
+                   background-color: transparent;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   min-height: 44px;
+               }}
+
+               #secondaryButton:hover {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-color: {ModernUITheme.TEXT_MUTED};
+               }}
+           """)
 
     def save_user(self):
         username = self.username_input.text().strip()
@@ -2479,7 +2734,711 @@ class UserManagementDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Operation failed: {str(e)}")
+# TODO: This part is causing UI freezing. Please suggest a refactor using QThread or async technique to prevent Not Responding.
+class DatabaseWorker(QThread):
+    """CORRECTED Database Worker Thread for async database operations"""
 
+    # Signal definitions
+    operation_started = pyqtSignal(str, str)  # operation_id, description
+    operation_progress = pyqtSignal(str, int, str)  # operation_id, percentage, message
+    operation_completed = pyqtSignal(str, object)  # operation_id, result
+    operation_error = pyqtSignal(str, str)  # operation_id, error_message
+
+    # Specific data signals
+    bans_loaded = pyqtSignal(list)
+    logs_loaded = pyqtSignal(list)
+    users_loaded = pyqtSignal(list)
+    statistics_loaded = pyqtSignal(dict)
+    verification_completed = pyqtSignal(str, str, dict)  # status, reason, details
+    connection_tested = pyqtSignal(str, bool, str)  # connection_type, success, message
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.operations_queue = queue.Queue()
+        self.current_operation = None
+        self.is_running = True
+        self.mutex = QMutex()
+        self.wait_condition = QWaitCondition()
+
+    def add_operation(self, operation_type, operation_id, db_instance, *args, **kwargs):
+        """Add operation to queue for async execution"""
+        operation = {
+            'type': operation_type,
+            'id': operation_id,
+            'db': db_instance,
+            'args': args,
+            'kwargs': kwargs,
+            'timestamp': time.time()
+        }
+        self.operations_queue.put(operation)
+
+        # Wake up thread if sleeping
+        self.mutex.lock()
+        self.wait_condition.wakeOne()
+        self.mutex.unlock()
+
+        if not self.isRunning():
+            self.start()
+
+    def run(self):
+        """Main thread execution loop"""
+        logger.info("DatabaseWorker thread started")
+
+        while self.is_running:
+            try:
+                # Get operation from queue with timeout
+                try:
+                    operation = self.operations_queue.get(timeout=1.0)
+                except queue.Empty:
+                    # No operations, wait for signal
+                    self.mutex.lock()
+                    self.wait_condition.wait(self.mutex, 5000)  # 5 second timeout
+                    self.mutex.unlock()
+                    continue
+
+                self.current_operation = operation
+                self._execute_operation(operation)
+                self.current_operation = None
+
+            except Exception as e:
+                logger.error(f"DatabaseWorker thread error: {e}")
+                if self.current_operation:
+                    self.operation_error.emit(self.current_operation['id'], str(e))
+                    self.current_operation = None
+
+    def _execute_operation(self, operation):
+        """Execute individual database operation"""
+        try:
+            op_type = operation['type']
+            op_id = operation['id']
+            db = operation['db']
+            args = operation['args']
+            kwargs = operation['kwargs']
+
+            # Emit operation started signal
+            description = self._get_operation_description(op_type)
+            self.operation_started.emit(op_id, description)
+
+            # Execute operation based on type
+            result = None
+
+            if op_type == 'load_bans':
+                result = self._load_bans(db, *args, **kwargs)
+                self.bans_loaded.emit(result)
+
+            elif op_type == 'load_logs':
+                result = self._load_logs(db, *args, **kwargs)
+                self.logs_loaded.emit(result)
+
+            elif op_type == 'load_users':
+                result = self._load_users(db, *args, **kwargs)
+                self.users_loaded.emit(result)
+
+            elif op_type == 'load_statistics':
+                result = self._load_statistics(db, *args, **kwargs)
+                self.statistics_loaded.emit(result)
+
+            elif op_type == 'verify_tanker':
+                status, reason, details = self._verify_tanker(db, *args, **kwargs)
+                result = (status, reason, details)
+                self.verification_completed.emit(status, reason, details)
+
+            elif op_type == 'test_connection':
+                success, message = self._test_connection(db, *args, **kwargs)
+                result = (success, message)
+                connection_type = args[0] if args else 'unknown'
+                self.connection_tested.emit(connection_type, success, message)
+
+            else:
+                raise ValueError(f"Unknown operation type: {op_type}")
+
+            # Emit completion signal
+            self.operation_completed.emit(op_id, result)
+
+        except Exception as e:
+            logger.error(f"Error executing operation {op_type}: {e}")
+            self.operation_error.emit(op_id, str(e))
+
+    def _get_operation_description(self, op_type):
+        """Get human-readable description for operation type"""
+        descriptions = {
+            'load_bans': 'Loading ban records...',
+            'load_logs': 'Loading activity logs...',
+            'load_users': 'Loading user accounts...',
+            'load_statistics': 'Calculating statistics...',
+            'verify_tanker': 'Verifying tanker...',
+            'test_connection': 'Testing database connection...'
+        }
+        return descriptions.get(op_type, f'Executing {op_type}...')
+
+    # ===== CORRECTED OPERATION IMPLEMENTATIONS =====
+
+    def _load_bans(self, db, filters=None):
+        """Load ban records - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Loading ban records...")
+
+        try:
+            # Use existing DatabaseManager method
+            result = db.get_all_bans(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Ban records loaded")
+            logger.info(f"Loaded {len(result)} ban records")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading bans: {e}")
+            raise
+
+    def _load_logs(self, db, limit=50, filters=None):
+        """Load activity logs - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Loading activity logs...")
+
+        try:
+            # Use existing DatabaseManager method
+            result = db.get_recent_logs(limit, filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Activity logs loaded")
+            logger.info(f"Loaded {len(result)} log records")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading logs: {e}")
+            raise
+
+    def _load_users(self, user_manager):
+        """Load user accounts - CALLS EXISTING UserManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 20, "Loading user accounts...")
+
+        try:
+            # Use existing UserManager method
+            result = user_manager.get_all_users()
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "User accounts loaded")
+            logger.info(f"Loaded {len(result)} user accounts")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading users: {e}")
+            raise
+
+    def _load_statistics(self, db, filters=None):
+        """Load dashboard statistics - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 10, "Calculating statistics...")
+
+        try:
+            self.operation_progress.emit(self.current_operation['id'], 30, "Loading ban statistics...")
+            ban_stats = db.get_ban_statistics(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 60, "Loading verification statistics...")
+            verify_stats = db.get_verification_statistics(filters)
+
+            self.operation_progress.emit(self.current_operation['id'], 80, "Loading recent data...")
+            recent_bans = db.get_all_bans(filters, exclude_blob=True) if hasattr(db, 'get_all_bans') else []
+            recent_logs = db.get_recent_logs(15, filters) if hasattr(db, 'get_recent_logs') else []
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Statistics complete")
+
+            result = {
+                'ban_stats': ban_stats,
+                'verify_stats': verify_stats,
+                'recent_bans': recent_bans,
+                'recent_logs': recent_logs
+            }
+
+            logger.info("Dashboard statistics calculated successfully")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error loading statistics: {e}")
+            raise
+
+    def _verify_tanker(self, db, tanker_number, operator):
+        """Verify tanker - CALLS EXISTING DatabaseManager methods"""
+        tanker_display = tanker_number or 'latest tanker'
+        self.operation_progress.emit(self.current_operation['id'], 20, f"Verifying {tanker_display}...")
+
+        try:
+            if tanker_number:
+                # Use existing DatabaseManager method
+                status, reason, details = db.verify_specific_tanker(tanker_number, operator)
+            else:
+                # Use existing DatabaseManager method
+                status, reason, details = db.simple_tanker_verification(operator)
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Verification complete")
+
+            logger.info(f"Tanker verification completed: {status}")
+            return status, reason, details
+
+        except Exception as e:
+            logger.error(f"Error verifying tanker: {e}")
+            raise
+
+    def _test_connection(self, db, connection_type):
+        """Test database connection - CALLS EXISTING DatabaseManager methods"""
+        self.operation_progress.emit(self.current_operation['id'], 30, f"Testing {connection_type} connection...")
+
+        try:
+            if connection_type == 'server':
+                # Use existing DatabaseManager method
+                db.test_server_connection()  # This is the CORRECT method name
+                success = db.server_available
+                message = "Server connection successful" if success else "Server connection failed"
+
+            elif connection_type == 'local':
+                # Test local SQLite connection directly
+                try:
+                    with sqlite3.connect(db.sqlite_db, timeout=10) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                        tables = cursor.fetchall()
+                    success = True
+                    message = f"Local connection successful ({len(tables)} tables)"
+                except Exception as e:
+                    success = False
+                    message = f"Local connection failed: {str(e)}"
+
+            else:
+                raise ValueError(f"Unknown connection type: {connection_type}")
+
+            self.operation_progress.emit(self.current_operation['id'], 100, "Connection test complete")
+
+            logger.info(f"Connection test {connection_type}: {'Success' if success else 'Failed'}")
+            return success, message
+
+        except Exception as e:
+            logger.error(f"Error testing {connection_type} connection: {e}")
+            return False, str(e)
+
+    def stop_thread(self):
+        """Stop the thread gracefully"""
+        logger.info("Stopping DatabaseWorker thread...")
+        self.is_running = False
+        self.mutex.lock()
+        self.wait_condition.wakeAll()
+        self.mutex.unlock()
+
+        if self.isRunning():
+            self.wait(5000)  # Wait up to 5 seconds for thread to finish
+
+        logger.info("DatabaseWorker thread stopped")
+class LoadingOverlay(QWidget):
+    """Loading overlay that covers the entire widget"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("""
+            LoadingOverlay {
+                background-color: rgba(255, 255, 255, 0.9);
+                border-radius: 8px;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+
+        # Spinner
+        self.spinner_label = QLabel("⏳")
+        self.spinner_label.setAlignment(Qt.AlignCenter)
+        self.spinner_label.setStyleSheet("""
+            QLabel {
+                color: #3B82F6;
+                font-size: 32px;
+                margin-bottom: 16px;
+            }
+        """)
+        layout.addWidget(self.spinner_label)
+
+        # Message
+        self.message_label = QLabel("Loading...")
+        self.message_label.setAlignment(Qt.AlignCenter)
+        self.message_label.setStyleSheet("""
+            QLabel {
+                color: #6B7280;
+                font-size: 16px;
+                font-weight: 500;
+                margin-bottom: 16px;
+            }
+        """)
+        layout.addWidget(self.message_label)
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setFixedWidth(200)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                border-radius: 3px;
+                background-color: #E5E7EB;
+            }
+            QProgressBar::chunk {
+                background-color: #3B82F6;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.progress_bar)
+
+        # Animation timer for spinner
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_spinner)
+        self.spinner_chars = ["⏳", "⌛", "⏳", "⌛"]
+        self.spinner_index = 0
+
+        self.hide()
+
+    def show_loading(self, message="Loading..."):
+        """Show loading overlay"""
+        self.message_label.setText(message)
+        self.progress_bar.setValue(0)
+        self.timer.start(500)  # Update every 500ms
+        self.show()
+        self.raise_()
+
+    def hide_loading(self):
+        """Hide loading overlay"""
+        self.timer.stop()
+        self.hide()
+
+    def update_progress(self, percentage, message=None):
+        """Update loading progress"""
+        self.progress_bar.setValue(percentage)
+        if message:
+            self.message_label.setText(message)
+
+    def update_spinner(self):
+        """Update spinner animation"""
+        self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
+        self.spinner_label.setText(self.spinner_chars[self.spinner_index])
+class AudioRecorder(QObject):
+    """Thread-safe audio recorder using PyAudio"""
+
+    recording_started = pyqtSignal()
+    recording_stopped = pyqtSignal()
+    recording_progress = pyqtSignal(float)  # Progress as percentage
+    error_occurred = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.audio = None
+        self.stream = None
+        self.frames = []
+        self.is_recording = False
+        self.temp_file = None
+
+        if AUDIO_AVAILABLE:
+            try:
+                self.audio = pyaudio.PyAudio()
+                logger.info("AudioRecorder initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize PyAudio: {e}")
+                self.error_occurred.emit(f"Audio initialization failed: {e}")
+
+    def start_recording(self):
+        """Start recording audio"""
+        if not AUDIO_AVAILABLE or not self.audio:
+            self.error_occurred.emit("Audio recording not available")
+            return False
+
+        try:
+            logger.info("Starting audio recording...")
+            self.frames = []
+            self.is_recording = True
+
+            # Create temporary file for recording
+            self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+            self.temp_file.close()
+
+            self.stream = self.audio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK,
+                stream_callback=self._audio_callback
+            )
+
+            self.stream.start_stream()
+            self.recording_started.emit()
+            logger.info("Audio recording started successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error starting recording: {e}")
+            self.error_occurred.emit(f"Failed to start recording: {e}")
+            return False
+
+    def _audio_callback(self, in_data, frame_count, time_info, status):
+        """Callback for audio stream"""
+        if self.is_recording:
+            self.frames.append(in_data)
+            # Emit progress (approximate based on frame count)
+            progress = min(len(self.frames) * CHUNK / (RATE * RECORD_SECONDS) * 100, 100)
+            self.recording_progress.emit(progress)
+            return (in_data, pyaudio.paContinue)
+        return (in_data, pyaudio.paComplete)
+
+    def stop_recording(self):
+        """Stop recording and save to file"""
+        if not self.is_recording:
+            return None
+
+        try:
+            logger.info("Stopping audio recording...")
+            self.is_recording = False
+
+            if self.stream:
+                self.stream.stop_stream()
+                self.stream.close()
+
+            # Save recording to WAV file
+            if self.frames and self.temp_file:
+                with wave.open(self.temp_file.name, 'wb') as wf:
+                    wf.setnchannels(CHANNELS)
+                    wf.setsampwidth(self.audio.get_sample_size(FORMAT))
+                    wf.setframerate(RATE)
+                    wf.writeframes(b''.join(self.frames))
+
+                logger.info(f"Recording saved to: {self.temp_file.name}")
+                self.recording_stopped.emit()
+                return self.temp_file.name
+
+        except Exception as e:
+            logger.error(f"Error stopping recording: {e}")
+            self.error_occurred.emit(f"Failed to save recording: {e}")
+
+        return None
+
+    def play_audio(self, audio_data_or_file, callback: Optional[Callable] = None):
+        """Play audio from data or file"""
+        if not AUDIO_AVAILABLE or not self.audio:
+            if callback:
+                callback(False, "Audio playback not available")
+            return
+
+        def _play_thread():
+            try:
+                logger.info("Starting audio playback...")
+
+                # Handle different input types
+                if isinstance(audio_data_or_file, str):
+                    # File path
+                    if not os.path.exists(audio_data_or_file):
+                        raise FileNotFoundError(f"Audio file not found: {audio_data_or_file}")
+                    audio_file = audio_data_or_file
+                elif isinstance(audio_data_or_file, bytes):
+                    # Raw audio data - save to temp file first
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+                    temp_file.write(audio_data_or_file)
+                    temp_file.close()
+                    audio_file = temp_file.name
+                else:
+                    raise ValueError("Invalid audio data type")
+
+                # Open and play WAV file
+                with wave.open(audio_file, 'rb') as wf:
+                    # Create output stream
+                    stream = self.audio.open(
+                        format=self.audio.get_format_from_width(wf.getsampwidth()),
+                        channels=wf.getnchannels(),
+                        rate=wf.getframerate(),
+                        output=True
+                    )
+
+                    # Play audio in chunks
+                    data = wf.readframes(CHUNK)
+                    while data:
+                        stream.write(data)
+                        data = wf.readframes(CHUNK)
+
+                    stream.stop_stream()
+                    stream.close()
+
+                logger.info("Audio playback completed successfully")
+                if callback:
+                    callback(True, "Playback completed")
+
+            except Exception as e:
+                logger.error(f"Error during playback: {e}")
+                if callback:
+                    callback(False, f"Playback failed: {e}")
+
+        # Run playback in separate thread to avoid blocking UI
+        thread = threading.Thread(target=_play_thread)
+        thread.daemon = True
+        thread.start()
+
+    def cleanup(self):
+        """Clean up resources"""
+        try:
+            if self.stream:
+                self.stream.close()
+            if self.audio:
+                self.audio.terminate()
+            if self.temp_file and os.path.exists(self.temp_file.name):
+                os.unlink(self.temp_file.name)
+            logger.info("AudioRecorder cleanup completed")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+class AudioRecordDialog(QDialog):
+    """Dialog for recording audio with real-time feedback"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.recorder = AudioRecorder()
+        self.recorded_file = None
+        self.recording_timer = QTimer()
+        self.recording_time = 0
+
+        self.setWindowTitle("Record Voice Note")
+        self.setModal(True)
+        self.setFixedSize(400, 200)
+
+        self.setup_ui()
+        self.connect_signals()
+
+        # Check if audio is available
+        if not AUDIO_AVAILABLE:
+            self.record_btn.setEnabled(False)
+            self.status_label.setText("Audio recording not available")
+
+    def setup_ui(self):
+        """Set up the dialog UI"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(16)
+
+        # Status label
+        self.status_label = QLabel("Ready to record")
+        self.status_label.setStyleSheet("font-size: 14px; color: #666;")
+        layout.addWidget(self.status_label)
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
+
+        # Time label
+        self.time_label = QLabel("00:00")
+        self.time_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
+        self.time_label.setAlignment(Qt.AlignCenter)  # Center alignment
+        layout.addWidget(self.time_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        self.record_btn = QPushButton("🎙️ Start Recording")
+        self.record_btn.setMinimumHeight(40)
+        self.record_btn.clicked.connect(self.toggle_recording)
+
+        self.play_btn = QPushButton("▶️ Play")
+        self.play_btn.setMinimumHeight(40)
+        self.play_btn.setEnabled(False)
+        self.play_btn.clicked.connect(self.play_recording)
+
+        self.save_btn = QPushButton("💾 Save")
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setEnabled(False)
+        self.save_btn.clicked.connect(self.accept)
+
+        self.cancel_btn = QPushButton("❌ Cancel")
+        self.cancel_btn.setMinimumHeight(40)
+        self.cancel_btn.clicked.connect(self.reject)
+
+        button_layout.addWidget(self.record_btn)
+        button_layout.addWidget(self.play_btn)
+        button_layout.addWidget(self.save_btn)
+        button_layout.addWidget(self.cancel_btn)
+
+        layout.addLayout(button_layout)
+
+    def connect_signals(self):
+        """Connect recorder signals to UI updates"""
+        self.recorder.recording_started.connect(self.on_recording_started)
+        self.recorder.recording_stopped.connect(self.on_recording_stopped)
+        self.recorder.recording_progress.connect(self.on_recording_progress)
+        self.recorder.error_occurred.connect(self.on_error)
+
+        # Timer for recording time display
+        self.recording_timer.timeout.connect(self.update_recording_time)
+
+    def toggle_recording(self):
+        """Toggle recording state"""
+        if not self.recorder.is_recording:
+            if self.recorder.start_recording():
+                self.recording_time = 0
+                self.recording_timer.start(1000)  # Update every second
+        else:
+            self.recorded_file = self.recorder.stop_recording()
+            self.recording_timer.stop()
+
+    def on_recording_started(self):
+        """Handle recording started signal"""
+        self.record_btn.setText("⏹️ Stop Recording")
+        self.status_label.setText("Recording... (Click stop when finished)")
+        self.progress_bar.setVisible(True)
+        self.play_btn.setEnabled(False)
+        self.save_btn.setEnabled(False)
+        logger.debug("Recording started - UI updated")
+
+    def on_recording_stopped(self):
+        """Handle recording stopped signal"""
+        self.record_btn.setText("🎙️ Start Recording")
+        self.status_label.setText("Recording completed")
+        self.progress_bar.setVisible(False)
+        self.play_btn.setEnabled(True)
+        self.save_btn.setEnabled(True)
+        logger.debug("Recording stopped - UI updated")
+
+    def on_recording_progress(self, progress):
+        """Handle recording progress update"""
+        self.progress_bar.setValue(int(progress))
+
+    def update_recording_time(self):
+        """Update recording time display"""
+        self.recording_time += 1
+        minutes = self.recording_time // 60
+        seconds = self.recording_time % 60
+        self.time_label.setText(f"{minutes:02d}:{seconds:02d}")
+
+        # Auto-stop after maximum time
+        if self.recording_time >= RECORD_SECONDS:
+            self.toggle_recording()
+
+    def play_recording(self):
+        """Play the recorded audio"""
+        if self.recorded_file:
+            self.status_label.setText("Playing recording...")
+            self.recorder.play_audio(
+                self.recorded_file,
+                lambda success, msg: self.status_label.setText(
+                    "Playback completed" if success else f"Playback failed: {msg}"
+                )
+            )
+
+    def on_error(self, error_message):
+        """Handle error from recorder"""
+        logger.error(f"Audio error: {error_message}")
+        QMessageBox.warning(self, "Audio Error", error_message)
+        self.status_label.setText(f"Error: {error_message}")
+
+    @property
+    def recorded_data(self):
+        """Get recorded audio data as bytes"""
+        if self.recorded_file and os.path.exists(self.recorded_file):
+            try:
+                with open(self.recorded_file, 'rb') as f:
+                    return f.read()
+            except Exception as e:
+                logger.error(f"Error reading recorded file: {e}")
+        return None
+
+    def closeEvent(self, event):
+        """Clean up when dialog is closed"""
+        self.recorder.cleanup()
+        super().closeEvent(event)
 class MainWindow(QMainWindow):
     """Enhanced main window with Modern UI and Fixed Filters"""
 
@@ -2487,6 +3446,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.user_info = user_info
         self.config = config_manager
+        self.db_worker = DatabaseWorker()
+        self.setup_database_signals()
+        self.loading_overlays = {}
+        self.active_operations = {}
+        self.operation_counter = 0
         self.last_tanker = None
         self.auto_switch_enabled = False
         self.notification_enabled = True
@@ -2516,13 +3480,30 @@ class MainWindow(QMainWindow):
 
         self.init_ui()
         self.apply_modern_styles()
+        self.initialize_audio_system()
 
         # Use single shot timer to avoid blocking
-        QTimer.singleShot(500, self.initial_dashboard_load)
+        QTimer.singleShot(500, self.initial_dashboard_load_async)
         QTimer.singleShot(1000, self.start_monitoring)
 
-        logger.info(f"Modern UI main window initialized for user: {user_info['username']} with role: {user_info['role']}")
 
+        logger.info(f"Modern UI main window initialized for user: {user_info['username']} with role: {user_info['role']}")
+        self.setup_loading_overlays()
+
+    def initialize_audio_system(self):
+        """Add this to your main window's __init__ method"""
+        # Initialize audio recorder
+        self.audio_recorder = AudioRecorder()
+
+        # Set up logging
+        logging.basicConfig(level=logging.DEBUG)
+        self.logger = logging.getLogger(__name__)
+
+        # Ensure status bar exists
+        if not hasattr(self, 'status_bar'):
+            self.status_bar = self.statusBar()
+
+        logger.info("Audio system initialized")
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -2680,6 +3661,481 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addWidget(user_container)
 
+    def setup_database_signals(self):
+        """Setup database worker signals"""
+        self.db_worker.operation_started.connect(self.on_operation_started)
+        self.db_worker.operation_progress.connect(self.on_operation_progress)
+        self.db_worker.operation_completed.connect(self.on_operation_completed)
+        self.db_worker.operation_error.connect(self.on_operation_error)
+
+        # Specific data signals
+        self.db_worker.bans_loaded.connect(self.on_bans_loaded)
+        self.db_worker.logs_loaded.connect(self.on_logs_loaded)
+        self.db_worker.users_loaded.connect(self.on_users_loaded)
+        self.db_worker.statistics_loaded.connect(self.on_statistics_loaded)
+        self.db_worker.verification_completed.connect(self.on_verification_completed)
+        self.db_worker.connection_tested.connect(self.on_connection_tested)
+
+    def setup_loading_overlays(self):
+        """Setup loading overlays for each page"""
+        if hasattr(self, 'dashboard_page'):
+            self.loading_overlays['dashboard'] = LoadingOverlay(self.dashboard_page)
+
+        if hasattr(self, 'bans_page'):
+            self.loading_overlays['bans'] = LoadingOverlay(self.bans_page)
+
+        if hasattr(self, 'logs_page'):
+            self.loading_overlays['logs'] = LoadingOverlay(self.logs_page)
+
+        # Position overlays
+        for page_name, overlay in self.loading_overlays.items():
+            if page_name == 'dashboard' and hasattr(self, 'dashboard_page'):
+                self._setup_overlay_resize(self.dashboard_page, overlay)
+            elif page_name == 'bans' and hasattr(self, 'bans_page'):
+                self._setup_overlay_resize(self.bans_page, overlay)
+            elif page_name == 'logs' and hasattr(self, 'logs_page'):
+                self._setup_overlay_resize(self.logs_page, overlay)
+
+    def _setup_overlay_resize(self, page_widget, overlay):
+        """Setup overlay resizing for a page"""
+
+        def resize_overlay():
+            overlay.setGeometry(page_widget.rect())
+
+        original_resize = page_widget.resizeEvent
+
+        def new_resize_event(event):
+            if original_resize:
+                original_resize(event)
+            else:
+                QWidget.resizeEvent(page_widget, event)
+            resize_overlay()
+
+        page_widget.resizeEvent = new_resize_event
+        resize_overlay()  # Initial positioning
+
+    def generate_operation_id(self):
+        """Generate unique operation ID"""
+        self.operation_counter += 1
+        return f"op_{self.operation_counter}_{int(time.time())}"
+
+    def initial_dashboard_load_async(self):
+        """Load initial dashboard data asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'initial_dashboard_load'
+
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].show_loading("Loading initial dashboard data...")
+
+            self.db_worker.add_operation('load_statistics', operation_id, self.db, self.current_dashboard_filters)
+
+            logger.info("Initial dashboard load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error starting initial dashboard load: {e}")
+            self.status_bar.showMessage(f"Dashboard load error: {e}")
+
+    def refresh_dashboard_async(self):
+        """Refresh dashboard asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'dashboard_refresh'
+
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].show_loading("Refreshing dashboard...")
+
+            filters = self.current_dashboard_filters if self.dashboard_filters_applied else None
+            self.db_worker.add_operation('load_statistics', operation_id, self.db, filters)
+
+            logger.info("Dashboard refresh started asynchronously")
+        except Exception as e:
+            logger.error(f"Error refreshing dashboard: {e}")
+            self.status_bar.showMessage(f"Dashboard refresh error: {e}")
+
+    def load_bans_table_async(self):
+        """Load bans table asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'load_bans'
+
+            if 'bans' in self.loading_overlays:
+                self.loading_overlays['bans'].show_loading("Loading ban records...")
+
+            if hasattr(self, 'bans_table'):
+                self.bans_table.setEnabled(False)
+
+            filters = self.current_ban_filters if self.ban_filters_applied else None
+            self.db_worker.add_operation('load_bans', operation_id, self.db, filters)
+
+            logger.info("Ban table load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error loading bans table: {e}")
+            self.status_bar.showMessage(f"Bans table load error: {e}")
+
+    def load_logs_table_async(self, filters=None):
+        """Load logs table asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'load_logs'
+
+            if 'logs' in self.loading_overlays:
+                self.loading_overlays['logs'].show_loading("Loading activity logs...")
+
+            if hasattr(self, 'logs_table'):
+                self.logs_table.setEnabled(False)
+
+            if filters is None:
+                filters = self.get_current_log_filters()
+
+            self.db_worker.add_operation('load_logs', operation_id, self.db, 100, filters)
+
+            logger.info("Logs table load started asynchronously")
+        except Exception as e:
+            logger.error(f"Error loading logs table: {e}")
+            self.status_bar.showMessage(f"Logs table load error: {e}")
+
+    def verify_latest_tanker_async(self):
+        """Verify latest tanker asynchronously"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'verify_latest'
+
+            self.status_bar.showMessage("Verifying latest tanker...")
+
+            self.db_worker.add_operation('verify_tanker', operation_id, self.db, None, self.user_info['username'])
+
+            logger.info("Latest tanker verification started asynchronously")
+        except Exception as e:
+            logger.error(f"Error verifying latest tanker: {e}")
+            self.status_bar.showMessage(f"Verification error: {e}")
+
+    def verify_manual_tanker_async(self):
+        """Verify manually entered tanker asynchronously"""
+        try:
+            if not hasattr(self, 'manual_tanker_input'):
+                return
+
+            tanker_number = self.manual_tanker_input.text().strip().upper()
+            if not tanker_number:
+                QMessageBox.warning(self, "Input Required", "Please enter a tanker number")
+                return
+
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'verify_manual'
+
+            self.status_bar.showMessage(f"Verifying tanker: {tanker_number}")
+
+            self.db_worker.add_operation('verify_tanker', operation_id, self.db, tanker_number,
+                                         self.user_info['username'])
+
+            logger.info(f"Manual tanker verification started asynchronously: {tanker_number}")
+        except Exception as e:
+            logger.error(f"Error verifying manual tanker: {e}")
+            self.status_bar.showMessage(f"Manual verification error: {e}")
+
+    def test_server_connection_async(self):
+        """Test server connection asynchronously - CORRECTED"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'test_server'
+
+            if hasattr(self, 'server_status_label'):
+                self.server_status_label.setText("Server Status: Testing...")
+                self.server_status_label.setStyleSheet("color: #6B7280;")
+
+            self.status_bar.showMessage("Testing server connection...")
+
+            # CORRECTED: Pass 'server' as argument, not call async method on db
+            self.db_worker.add_operation('test_connection', operation_id, self.db, 'server')
+
+            logger.info("Server connection test started asynchronously")
+        except Exception as e:
+            logger.error(f"Error testing server connection: {e}")
+            if hasattr(self, 'server_status_label'):
+                self.server_status_label.setText(f"Server Status: ❌ Error: {str(e)[:30]}")
+
+    def test_local_connection_async(self):
+        """Test local connection asynchronously - CORRECTED"""
+        try:
+            operation_id = self.generate_operation_id()
+            self.active_operations[operation_id] = 'test_local'
+
+            if hasattr(self, 'local_status_label'):
+                self.local_status_label.setText("Local Status: Testing...")
+                self.local_status_label.setStyleSheet("color: #6B7280;")
+
+            self.status_bar.showMessage("Testing local connection...")
+
+            # CORRECTED: Pass 'local' as argument, not call async method on db
+            self.db_worker.add_operation('test_connection', operation_id, self.db, 'local')
+
+            logger.info("Local connection test started asynchronously")
+        except Exception as e:
+            logger.error(f"Error testing local connection: {e}")
+            if hasattr(self, 'local_status_label'):
+                self.local_status_label.setText(f"Local Status: ❌ Error: {str(e)[:30]}")
+    def on_operation_started(self, operation_id, description):
+        """Handle operation started signal"""
+        logger.info(f"Operation started: {operation_id} - {description}")
+        self.status_bar.showMessage(description)
+
+    def on_operation_progress(self, operation_id, percentage, message):
+        """Handle operation progress signal"""
+        operation_type = self.active_operations.get(operation_id)
+        if operation_type:
+            if operation_type in ['dashboard_refresh', 'initial_dashboard_load']:
+                if 'dashboard' in self.loading_overlays:
+                    self.loading_overlays['dashboard'].update_progress(percentage, message)
+            elif operation_type == 'load_bans':
+                if 'bans' in self.loading_overlays:
+                    self.loading_overlays['bans'].update_progress(percentage, message)
+            elif operation_type == 'load_logs':
+                if 'logs' in self.loading_overlays:
+                    self.loading_overlays['logs'].update_progress(percentage, message)
+
+        if percentage < 100:
+            self.status_bar.showMessage(f"{message} ({percentage}%)")
+
+    def on_operation_completed(self, operation_id, result):
+        """Handle operation completed signal"""
+        operation_type = self.active_operations.pop(operation_id, None)
+        if operation_type:
+            logger.info(f"Operation completed: {operation_type}")
+            self.status_bar.showMessage(f"{operation_type.replace('_', ' ').title()} completed successfully")
+
+    def on_operation_error(self, operation_id, error_message):
+        """Handle operation error signal"""
+        operation_type = self.active_operations.pop(operation_id, None)
+
+        logger.error(f"Operation error: {operation_type} - {error_message}")
+
+        # Hide all loading overlays
+        for overlay in self.loading_overlays.values():
+            overlay.hide_loading()
+
+        # Re-enable tables
+        if hasattr(self, 'bans_table'):
+            self.bans_table.setEnabled(True)
+        if hasattr(self, 'logs_table'):
+            self.logs_table.setEnabled(True)
+
+        # Show error message
+        self.status_bar.showMessage(f"Error: {error_message}")
+
+        error_title = f"Error in {operation_type.replace('_', ' ').title()}" if operation_type else "Operation Error"
+        QMessageBox.critical(self, error_title, f"Operation failed:\n\n{error_message}")
+
+    def on_bans_loaded(self, bans_data):
+        """Handle bans loaded signal"""
+        try:
+            if 'bans' in self.loading_overlays:
+                self.loading_overlays['bans'].hide_loading()
+
+            if hasattr(self, 'bans_table'):
+                self.bans_table.setEnabled(True)
+
+            # Use your existing populate method or add this:
+            self.populate_bans_table_from_data(bans_data)
+
+            logger.info(f"Bans table updated with {len(bans_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling bans loaded: {e}")
+
+    def on_logs_loaded(self, logs_data):
+        """Handle logs loaded signal"""
+        try:
+            if 'logs' in self.loading_overlays:
+                self.loading_overlays['logs'].hide_loading()
+
+            if hasattr(self, 'logs_table'):
+                self.logs_table.setEnabled(True)
+
+            # Use your existing populate method
+            self.populate_logs_table_from_data(logs_data)
+
+            logger.info(f"Logs table updated with {len(logs_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling logs loaded: {e}")
+
+    def on_users_loaded(self, users_data):
+        """Handle users loaded signal"""
+        try:
+            if hasattr(self, 'users_table'):
+                self.users_table.setEnabled(True)
+
+            # Use your existing load_users_table logic here
+            if hasattr(self, 'load_users_table'):
+                # Call your existing method with the data
+                pass
+
+            logger.info(f"Users table updated with {len(users_data)} records")
+
+        except Exception as e:
+            logger.error(f"Error handling users loaded: {e}")
+
+    def on_statistics_loaded(self, stats_data):
+        """Handle statistics loaded signal"""
+        try:
+            if 'dashboard' in self.loading_overlays:
+                self.loading_overlays['dashboard'].hide_loading()
+
+            # Use your existing dashboard update methods
+            self.update_dashboard_with_statistics(stats_data)
+
+            logger.info("Dashboard statistics updated successfully")
+
+        except Exception as e:
+            logger.error(f"Error handling statistics loaded: {e}")
+
+    def on_verification_completed(self, status, reason, details):
+        """Handle verification completed signal"""
+        try:
+            operation_type = None
+            for op_id, op_type in self.active_operations.items():
+                if op_type in ['verify_latest', 'verify_manual']:
+                    operation_type = op_type
+                    break
+
+            if operation_type == 'verify_latest':
+                tanker_number = details.get("tanker_number", "UNKNOWN")
+                # Use your existing update method
+                if hasattr(self, 'update_auto_verification_display'):
+                    self.update_auto_verification_display(tanker_number, status, reason, details)
+                self.status_bar.showMessage(f"Latest tanker verified: {tanker_number}")
+            elif operation_type == 'verify_manual':
+                tanker_number = details.get("tanker_number", "UNKNOWN")
+                # Use your existing update method
+                if hasattr(self, 'update_manual_verification_display'):
+                    self.update_manual_verification_display(tanker_number, status, reason, details)
+                self.status_bar.showMessage(f"Manual verification completed: {tanker_number}")
+
+            # Play warning sound if needed
+            if details.get("play_sound", False) and hasattr(self, 'play_warning_sound_for_status'):
+                self.play_warning_sound_for_status(status)
+
+            logger.info(f"Verification completed: {status} - {reason}")
+
+        except Exception as e:
+            logger.error(f"Error handling verification completed: {e}")
+
+    def on_connection_tested(self, connection_type, success, message):
+        """Handle connection tested signal"""
+        try:
+            if connection_type == 'server':
+                if hasattr(self, 'server_status_label'):
+                    if success:
+                        self.server_status_label.setText(f"Server Status: ✅ {message}")
+                        self.server_status_label.setStyleSheet("color: #059669; font-weight: 600;")
+                    else:
+                        self.server_status_label.setText(f"Server Status: ❌ {message}")
+                        self.server_status_label.setStyleSheet("color: #DC2626; font-weight: 600;")
+
+            elif connection_type == 'local':
+                if hasattr(self, 'local_status_label'):
+                    if success:
+                        self.local_status_label.setText(f"Local Status: ✅ {message}")
+                        self.local_status_label.setStyleSheet("color: #059669; font-weight: 600;")
+                    else:
+                        self.local_status_label.setText(f"Local Status: ❌ {message}")
+                        self.local_status_label.setStyleSheet("color: #DC2626; font-weight: 600;")
+
+            status_msg = f"{connection_type.title()} connection: {'Success' if success else 'Failed'}"
+            self.status_bar.showMessage(status_msg)
+
+            logger.info(f"Connection test {connection_type}: {'Success' if success else 'Failed'} - {message}")
+
+        except Exception as e:
+            logger.error(f"Error handling connection tested: {e}")
+
+    def get_current_log_filters(self):
+        """Get current log filters"""
+        filters = {}
+        if hasattr(self, 'log_start_date') and hasattr(self, 'log_end_date'):
+            filters['start_date'] = self.log_start_date.date().toString("yyyy-MM-dd")
+            filters['end_date'] = self.log_end_date.date().toString("yyyy-MM-dd")
+        return filters
+
+    def populate_bans_table_from_data(self, bans_data):
+        """Populate bans table from loaded data - customize this for your table structure"""
+        if hasattr(self, 'bans_table'):
+            # Clear existing data
+            self.bans_table.setRowCount(0)
+
+            # Populate with new data (adapt this to your existing populate logic)
+            for row, ban in enumerate(bans_data):
+                self.bans_table.insertRow(row)
+
+                for col in range(min(8, len(ban))):
+                    value = ban[col] if col < len(ban) else ""
+                    item = QTableWidgetItem(str(value) if value else "")
+                    self.bans_table.setItem(row, col, item)
+
+    def populate_logs_table_from_data(self, logs_data):
+        """Populate logs table from loaded data - customize this for your table structure"""
+        if hasattr(self, 'logs_table'):
+            self.logs_table.setRowCount(0)
+
+            for row, log in enumerate(logs_data):
+                self.logs_table.insertRow(row)
+
+                for col, value in enumerate(log):
+                    item = QTableWidgetItem(str(value) if value else "")
+                    self.logs_table.setItem(row, col, item)
+
+    def update_dashboard_with_statistics(self, stats):
+        """Update dashboard with statistics data safely."""
+        try:
+            # Helper function to update stat card value
+            def update_stat_card(card_widget, new_value):
+                if card_widget:
+                    # Find the value label (first QLabel child with objectName "valueLabel")
+                    for child in card_widget.findChildren(QLabel):
+                        if child.objectName() == "valueLabel":
+                            child.setText(str(new_value))
+                            break
+
+            # تحديث إحصائيات الحظر
+            if hasattr(self, "label_total_bans") and self.label_total_bans:
+                update_stat_card(self.label_total_bans, stats.get("ban_stats", {}).get("total_bans", 0))
+
+            if hasattr(self, "label_active_bans") and self.label_active_bans:
+                update_stat_card(self.label_active_bans, stats.get("ban_stats", {}).get("active_bans", 0))
+
+            # تحديث إحصائيات التحقق
+            if hasattr(self, "label_total_verifications") and self.label_total_verifications:
+                update_stat_card(self.label_total_verifications, stats.get("verify_stats", {}).get("total", 0))
+
+            if hasattr(self, "label_success_rate") and self.label_success_rate:
+                success_rate = stats.get("verify_stats", {}).get("success_rate", 0.0)
+                update_stat_card(self.label_success_rate, f"{round(success_rate, 1)}%")
+
+            # تحديث جدول الحظر الأخير
+            if hasattr(self, "recent_bans_table") and self.recent_bans_table:
+                self.recent_bans_table.setRowCount(0)
+                for row_data in stats.get("recent_bans", []):
+                    row = self.recent_bans_table.rowCount()
+                    self.recent_bans_table.insertRow(row)
+                    for col, value in enumerate(
+                            [row_data[1], row_data[2], row_data[3], row_data[4], row_data[5], row_data[6]]):
+                        self.recent_bans_table.setItem(row, col, QTableWidgetItem(str(value)))
+
+            # تحديث جدول السجلات الأخيرة
+            if hasattr(self, "recent_table") and self.recent_table:
+                self.recent_table.setRowCount(0)
+                for row_data in stats.get("recent_logs", []):
+                    row = self.recent_table.rowCount()
+                    self.recent_table.insertRow(row)
+                    for col, value in enumerate([row_data[4], row_data[1], row_data[2], row_data[3], row_data[5]]):
+                        self.recent_table.setItem(row, col, QTableWidgetItem(str(value)))
+
+            logger.info("✅ Dashboard statistics updated successfully.")
+
+        except RuntimeError as e:
+            logger.error(f"❌ Runtime error updating dashboard (UI deleted?): {e}")
+        except Exception as e:
+            logger.error(f"❌ Error updating dashboard statistics: {e}")
     def create_modern_content_area(self):
         self.content_area = QFrame()
         self.content_area.setObjectName("modernContentArea")
@@ -2710,168 +4166,49 @@ class MainWindow(QMainWindow):
 
         self.content_layout.addWidget(self.stacked_widget)
 
-    def create_modern_dashboard_page(self):
-        """Create modern dashboard page with enhanced styling"""
-        page = QWidget()
-        page.setObjectName("modernPage")
-        layout = QVBoxLayout(page)
-        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+    def _style_stat_label(self, label: QLabel, title: str):
+        """Apply style to stat QLabel"""
+        label.setStyleSheet("""
+            background-color: #F0F4F8;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        """)
+        label.setText(f"0\n{title}")
+        label.setAlignment(Qt.AlignCenter)
+        label.setMinimumWidth(150)
 
-        # Modern header section
-        header_container = QFrame()
-        header_container.setObjectName("pageHeader")
-        header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+    def _create_stat_card(self, value: str, label: str) -> QWidget:
+        card = QFrame()
+        card.setObjectName("statCard")
 
-        header_info = QVBoxLayout()
-        header_title = QLabel("📊 Dashboard")
-        header_title.setObjectName("pageTitle")
-        header_info.addWidget(header_title)
+        # Set size policy for proper resizing
+        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        card.setMinimumHeight(120)
+        card.setMaximumHeight(160)
 
-        header_subtitle = QLabel("Ban Records & Verification Statistics")
-        header_subtitle.setObjectName("pageSubtitle")
-        header_info.addWidget(header_subtitle)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignCenter)
 
-        header_layout.addLayout(header_info)
-        header_layout.addStretch()
+        value_label = QLabel(value)
+        value_label.setObjectName("valueLabel")
+        value_label.setAlignment(Qt.AlignCenter)
+        value_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        value_label.setWordWrap(True)  # Allow text wrapping
+        layout.addWidget(value_label)
 
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.setObjectName("refreshButton")
-        refresh_btn.clicked.connect(self.refresh_dashboard)
-        header_layout.addWidget(refresh_btn)
+        desc_label = QLabel(label)
+        desc_label.setObjectName("descLabel")
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        desc_label.setWordWrap(True)  # Allow text wrapping
+        layout.addWidget(desc_label)
 
-        layout.addWidget(header_container)
-
-        # Modern filter section
-        filter_container = QFrame()
-        filter_container.setObjectName("filterContainer")
-        filter_layout = QVBoxLayout(filter_container)
-        filter_layout.setContentsMargins(24, 20, 24, 20)
-        filter_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        filter_header = QLabel("📊 Dashboard Filters")
-        filter_header.setObjectName("filterHeader")
-        filter_layout.addWidget(filter_header)
-
-        filter_controls = QHBoxLayout()
-        filter_controls.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        # Date range controls
-        date_group = QVBoxLayout()
-        date_label = QLabel("Date Range")
-        date_label.setObjectName("filterLabel")
-        date_group.addWidget(date_label)
-
-        date_controls = QHBoxLayout()
-        date_controls.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
-
-        self.dashboard_start_date = QDateEdit()
-        self.dashboard_start_date.setObjectName("modernDateEdit")
-        self.dashboard_start_date.setDate(QDate.currentDate().addDays(-30))
-        self.dashboard_start_date.setCalendarPopup(True)
-        date_controls.addWidget(self.dashboard_start_date)
-
-        date_to_label = QLabel("to")
-        date_to_label.setObjectName("dateToLabel")
-        date_controls.addWidget(date_to_label)
-
-        self.dashboard_end_date = QDateEdit()
-        self.dashboard_end_date.setObjectName("modernDateEdit")
-        self.dashboard_end_date.setDate(QDate.currentDate())
-        self.dashboard_end_date.setCalendarPopup(True)
-        date_controls.addWidget(self.dashboard_end_date)
-
-        date_group.addLayout(date_controls)
-        filter_controls.addLayout(date_group)
-
-        filter_controls.addStretch()
-
-        # Filter action buttons
-        filter_actions = QHBoxLayout()
-        filter_actions.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
-
-        apply_filter_btn = QPushButton("🔍 Apply Filter")
-        apply_filter_btn.setObjectName("applyFilterButton")
-        apply_filter_btn.clicked.connect(self.apply_dashboard_filter)
-        filter_actions.addWidget(apply_filter_btn)
-
-        clear_filter_btn = QPushButton("🗑️ Clear")
-        clear_filter_btn.setObjectName("clearFilterButton")
-        clear_filter_btn.clicked.connect(self.clear_dashboard_filter)
-        filter_actions.addWidget(clear_filter_btn)
-
-        filter_controls.addLayout(filter_actions)
-        filter_layout.addLayout(filter_controls)
-
-        # Filter status indicator
-        self.dashboard_filter_status = QLabel("📄 Showing all data")
-        self.dashboard_filter_status.setObjectName("filterStatus")
-        filter_layout.addWidget(self.dashboard_filter_status)
-
-        layout.addWidget(filter_container)
-
-        # Statistics sections with modern cards
-        stats_section = QVBoxLayout()
-        stats_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-
-        # Ban statistics
-        ban_stats_header = QLabel("⛔ Ban Records Statistics")
-        ban_stats_header.setObjectName("statsHeader")
-        stats_section.addWidget(ban_stats_header)
-
-        ban_stats_container = QFrame()
-        ban_stats_container.setObjectName("statsContainer")
-        self.ban_stats_container = QHBoxLayout(ban_stats_container)
-        self.ban_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-        stats_section.addWidget(ban_stats_container)
-
-        # Verification statistics
-        verify_stats_header = QLabel("✅ Verification Statistics")
-        verify_stats_header.setObjectName("statsHeader")
-        stats_section.addWidget(verify_stats_header)
-
-        verify_stats_container = QFrame()
-        verify_stats_container.setObjectName("statsContainer")
-        self.verify_stats_container = QHBoxLayout(verify_stats_container)
-        self.verify_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-        stats_section.addWidget(verify_stats_container)
-
-        layout.addLayout(stats_section)
-
-        # Recent activity tables with modern styling
-        tables_section = QVBoxLayout()
-        tables_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-
-        # Recent ban records table
-        recent_bans_header = QLabel("📋 Recent Ban Records")
-        recent_bans_header.setObjectName("tableHeader")
-        tables_section.addWidget(recent_bans_header)
-
-        self.recent_bans_table = QTableWidget()
-        self.recent_bans_table.setObjectName("modernTable")
-        self.recent_bans_table.setColumnCount(6)
-        self.recent_bans_table.setHorizontalHeaderLabels(["Tanker", "Reason", "Type", "Start Date", "End Date", "Created By"])
-        self.recent_bans_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.recent_bans_table.setMaximumHeight(250)
-        tables_section.addWidget(self.recent_bans_table)
-
-        # Recent verification activity table
-        recent_logs_header = QLabel("📋 Recent Verification Activity")
-        recent_logs_header.setObjectName("tableHeader")
-        tables_section.addWidget(recent_logs_header)
-
-        self.recent_table = QTableWidget()
-        self.recent_table.setObjectName("modernTable")
-        self.recent_table.setColumnCount(5)
-        self.recent_table.setHorizontalHeaderLabels(["⏰ Time", "🚛 Tanker", "📊 Status", "📝 Reason", "👤 Operator"])
-        self.recent_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.recent_table.setMaximumHeight(250)
-        tables_section.addWidget(self.recent_table)
-
-        layout.addLayout(tables_section)
-        layout.addStretch()
-
-        return page
+        return card
 
     def create_modern_verification_page(self):
         """Create modern auto verification page"""
@@ -2957,6 +4294,270 @@ class MainWindow(QMainWindow):
 
         return page
 
+    def create_modern_dashboard_page(self):
+        """Create modern dashboard page with enhanced styling"""
+        page = QWidget()
+        page.setObjectName("modernPage")
+        layout = QVBoxLayout(page)
+        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+
+        # ==== Header ====
+        header_container = QFrame()
+        header_container.setObjectName("pageHeader")
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        header_info = QVBoxLayout()
+        header_title = QLabel("📊 Dashboard")
+        header_title.setObjectName("pageTitle")
+        header_info.addWidget(header_title)
+
+        header_subtitle = QLabel("Ban Records & Verification Statistics")
+        header_subtitle.setObjectName("pageSubtitle")
+        header_info.addWidget(header_subtitle)
+
+        header_layout.addLayout(header_info)
+        header_layout.addStretch()
+
+        refresh_btn = QPushButton("🔄 Refresh")
+        refresh_btn.setObjectName("refreshButton")
+        refresh_btn.clicked.connect(self.refresh_dashboard)
+        header_layout.addWidget(refresh_btn)
+
+        layout.addWidget(header_container)
+
+        # ==== Filters ====
+        filter_container = QFrame()
+        filter_container.setObjectName("filterContainer")
+        filter_layout = QVBoxLayout(filter_container)
+        filter_layout.setContentsMargins(24, 20, 24, 20)
+        filter_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        filter_header = QLabel("📊 Dashboard Filters")
+        filter_header.setObjectName("filterHeader")
+        filter_layout.addWidget(filter_header)
+
+        filter_controls = QHBoxLayout()
+        filter_controls.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        date_group = QVBoxLayout()
+        date_label = QLabel("Date Range")
+        date_label.setObjectName("filterLabel")
+        date_group.addWidget(date_label)
+
+        date_controls = QHBoxLayout()
+        date_controls.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
+        self.dashboard_start_date = QDateEdit()
+        self.dashboard_start_date.setObjectName("modernDateEdit")
+        self.dashboard_start_date.setDate(QDate.currentDate().addDays(-30))
+        self.dashboard_start_date.setCalendarPopup(True)
+        date_controls.addWidget(self.dashboard_start_date)
+
+        date_to_label = QLabel("to")
+        date_to_label.setObjectName("dateToLabel")
+        date_controls.addWidget(date_to_label)
+
+        self.dashboard_end_date = QDateEdit()
+        self.dashboard_end_date.setObjectName("modernDateEdit")
+        self.dashboard_end_date.setDate(QDate.currentDate())
+        self.dashboard_end_date.setCalendarPopup(True)
+        date_controls.addWidget(self.dashboard_end_date)
+
+        date_group.addLayout(date_controls)
+        filter_controls.addLayout(date_group)
+        filter_controls.addStretch()
+
+        filter_actions = QHBoxLayout()
+        filter_actions.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+
+        apply_filter_btn = QPushButton("🔍 Apply Filter")
+        apply_filter_btn.setObjectName("applyFilterButton")
+        apply_filter_btn.clicked.connect(self.apply_dashboard_filter)
+        filter_actions.addWidget(apply_filter_btn)
+
+        clear_filter_btn = QPushButton("🗑️ Clear")
+        clear_filter_btn.setObjectName("clearFilterButton")
+        clear_filter_btn.clicked.connect(self.clear_dashboard_filter)
+        filter_actions.addWidget(clear_filter_btn)
+
+        filter_controls.addLayout(filter_actions)
+        filter_layout.addLayout(filter_controls)
+
+        self.dashboard_filter_status = QLabel("📄 Showing all data")
+        self.dashboard_filter_status.setObjectName("filterStatus")
+        filter_layout.addWidget(self.dashboard_filter_status)
+
+        layout.addWidget(filter_container)
+
+        # ==== Stats ====
+        stats_section = QVBoxLayout()
+        stats_section.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+
+        ban_stats_header = QLabel("⛔ Ban Records Statistics")
+        ban_stats_header.setObjectName("statsHeader")
+        stats_section.addWidget(ban_stats_header)
+
+        self.ban_stats_container = QFrame()
+        self.ban_stats_container.setObjectName("statsContainer")
+        self.ban_stats_layout = QGridLayout(self.ban_stats_container)
+        self.ban_stats_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        self.label_total_bans = self._create_stat_card("0", "Total Bans")
+        self.ban_stats_layout.addWidget(self.label_total_bans, 0, 0)
+
+        self.label_active_bans = self._create_stat_card("0", "Active Bans")
+        self.ban_stats_layout.addWidget(self.label_active_bans, 0, 1)
+
+        stats_section.addWidget(self.ban_stats_container)
+
+        verify_stats_header = QLabel("✅ Verification Statistics")
+        verify_stats_header.setObjectName("statsHeader")
+        stats_section.addWidget(verify_stats_header)
+
+        self.verify_stats_container_frame = QFrame()
+        self.verify_stats_container_frame.setObjectName("statsContainer")
+        self.verify_stats_container = QGridLayout(self.verify_stats_container_frame)
+        self.verify_stats_container.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        self.label_total_verifications = self._create_stat_card("0", "Total Verifications")
+        self.verify_stats_container.addWidget(self.label_total_verifications, 0, 0)
+
+        self.label_success_rate = self._create_stat_card("0%", "Success Rate")
+        self.verify_stats_container.addWidget(self.label_success_rate, 0, 1)
+
+        stats_section.addWidget(self.verify_stats_container_frame)
+        layout.addLayout(stats_section)
+
+        # ==== Tables Section - REDESIGNED ====
+        tables_section = QVBoxLayout()
+        tables_section.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+
+        # Recent Ban Records Table
+        recent_bans_container = QFrame()
+        recent_bans_container.setObjectName("tableContainer")
+        bans_container_layout = QVBoxLayout(recent_bans_container)
+        bans_container_layout.setContentsMargins(24, 20, 24, 20)
+        bans_container_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        bans_header_layout = QHBoxLayout()
+        recent_bans_header = QLabel("📋 Recent Ban Records")
+        recent_bans_header.setObjectName("tableHeader")
+        bans_header_layout.addWidget(recent_bans_header)
+
+        bans_count_label = QLabel("Loading...")
+        bans_count_label.setObjectName("tableCount")
+        bans_header_layout.addStretch()
+        bans_header_layout.addWidget(bans_count_label)
+
+        bans_container_layout.addLayout(bans_header_layout)
+
+        # Redesigned Recent Bans Table
+        self.recent_bans_table = QTableWidget()
+        self.recent_bans_table.setObjectName("dashboardTable")
+        self.recent_bans_table.setColumnCount(6)
+        self.recent_bans_table.setHorizontalHeaderLabels([
+            "🚛 Tanker", "📝 Reason", "🏷️ Type", "📅 Start", "📅 End", "👤 Created By"
+        ])
+
+        # Configure recent bans table for responsiveness
+        self.setup_responsive_table(self.recent_bans_table, [
+            ("🚛 Tanker", 100, QHeaderView.ResizeToContents),
+            ("📝 Reason", 200, QHeaderView.Stretch),
+            ("🏷️ Type", 80, QHeaderView.ResizeToContents),
+            ("📅 Start", 90, QHeaderView.ResizeToContents),
+            ("📅 End", 90, QHeaderView.ResizeToContents),
+            ("👤 Created By", 100, QHeaderView.ResizeToContents)
+        ])
+
+        self.recent_bans_table.setMaximumHeight(280)
+        self.recent_bans_table.setMinimumHeight(200)
+        bans_container_layout.addWidget(self.recent_bans_table)
+
+        # Store reference for count updates
+        self.bans_count_label = bans_count_label
+
+        tables_section.addWidget(recent_bans_container)
+
+        # Recent Verification Activity Table
+        recent_logs_container = QFrame()
+        recent_logs_container.setObjectName("tableContainer")
+        logs_container_layout = QVBoxLayout(recent_logs_container)
+        logs_container_layout.setContentsMargins(24, 20, 24, 20)
+        logs_container_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        logs_header_layout = QHBoxLayout()
+        recent_logs_header = QLabel("📋 Recent Verification Activity")
+        recent_logs_header.setObjectName("tableHeader")
+        logs_header_layout.addWidget(recent_logs_header)
+
+        logs_count_label = QLabel("Loading...")
+        logs_count_label.setObjectName("tableCount")
+        logs_header_layout.addStretch()
+        logs_header_layout.addWidget(logs_count_label)
+
+        logs_container_layout.addLayout(logs_header_layout)
+
+        # Redesigned Recent Activity Table
+        self.recent_table = QTableWidget()
+        self.recent_table.setObjectName("dashboardTable")
+        self.recent_table.setColumnCount(5)
+        self.recent_table.setHorizontalHeaderLabels([
+            "⏰ Time", "🚛 Tanker", "📊 Status", "📝 Reason", "👤 Operator"
+        ])
+
+        # Configure recent logs table for responsiveness
+        self.setup_responsive_table(self.recent_table, [
+            ("⏰ Time", 120, QHeaderView.ResizeToContents),
+            ("🚛 Tanker", 100, QHeaderView.ResizeToContents),
+            ("📊 Status", 100, QHeaderView.ResizeToContents),
+            ("📝 Reason", 250, QHeaderView.Stretch),
+            ("👤 Operator", 100, QHeaderView.ResizeToContents)
+        ])
+
+        self.recent_table.setMaximumHeight(280)
+        self.recent_table.setMinimumHeight(200)
+        logs_container_layout.addWidget(self.recent_table)
+
+        # Store reference for count updates
+        self.logs_count_label = logs_count_label
+
+        tables_section.addWidget(recent_logs_container)
+
+        layout.addLayout(tables_section)
+
+    def setup_responsive_table(self, table, column_config):
+        """Setup responsive table with proper column configuration
+
+        Args:
+            table: QTableWidget to configure
+            column_config: List of tuples (header, min_width, resize_mode)
+        """
+        header = table.horizontalHeader()
+
+        for i, (header_text, min_width, resize_mode) in enumerate(column_config):
+            if resize_mode == QHeaderView.Stretch:
+                header.setSectionResizeMode(i, QHeaderView.Stretch)
+            elif resize_mode == QHeaderView.ResizeToContents:
+                header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            else:
+                header.setSectionResizeMode(i, QHeaderView.Interactive)
+
+            # Set minimum widths
+            table.setColumnWidth(i, min_width)
+
+        # Configure table behavior
+        table.setAlternatingRowColors(True)
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SingleSelection)
+        table.setSortingEnabled(True)
+        table.verticalHeader().hide()
+
+        # Set row height
+        table.verticalHeader().setDefaultSectionSize(36)
+
+        # Enable word wrap for cells
+        table.setWordWrap(True)
     def create_modern_manual_verify_page(self):
         """Create modern manual verification page"""
         page = QWidget()
@@ -3778,634 +5379,630 @@ class MainWindow(QMainWindow):
     def apply_modern_styles(self):
         """Apply comprehensive modern styling"""
         self.setStyleSheet(f"""
-            /* Main Window Styling */
-            QMainWindow {{
-                background-color: {ModernUITheme.BACKGROUND};
-                font-family: {ModernUITheme.FONT_FAMILY};
-                color: {ModernUITheme.TEXT_PRIMARY};
-            }}
-            
-            /* Status Bar */
-            #modernStatusBar {{
-                background-color: {ModernUITheme.SURFACE};
-                border-top: 1px solid {ModernUITheme.BORDER_LIGHT};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_SM};
-            }}
-            
-            /* Sidebar Styling */
-            #modernSidebar {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-                    stop:0 {ModernUITheme.DARK_PRIMARY}, stop:1 {ModernUITheme.DARK_SECONDARY});
-                border-right: 1px solid {ModernUITheme.BORDER};
-            }}
-            
-            #titleContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_LG};
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #sidebarTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_2XL};
-                font-weight: 700;
-                color: white;
-                margin: 0;
-            }}
-            
-            #sidebarSubtitle {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: rgba(255, 255, 255, 0.8);
-                font-weight: 500;
-                margin: 0;
-            }}
-            
-            /* Navigation Styling */
-            #navContainer {{
-                background-color: transparent;
-            }}
-            
-            #navButtonContainer {{
-                background-color: transparent;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                border: none;
-                margin: {ModernUITheme.SPACE_XS} 0;
-                transition: all 0.2s ease;
-            }}
-            
-            #navButtonContainer:hover {{
-                background-color: rgba(255, 255, 255, 0.1);
-                transform: translateX(4px);
-            }}
-            
-            #navButtonContainerDisabled {{
-                background-color: transparent;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                opacity: 0.5;
-            }}
-            
-            #navIcon {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: white;
-                min-width: 24px;
-            }}
-            
-            #navText {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                color: white;
-            }}
-            
-            /* Sidebar Components */
-            #restrictionNotice {{
-                background-color: rgba(255, 183, 77, 0.1);
-                border: 1px solid rgba(255, 183, 77, 0.3);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                margin: {ModernUITheme.SPACE_MD} 0;
-            }}
-            
-            #restrictionTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: #FFB74D;
-            }}
-            
-            #restrictionDesc {{
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                color: rgba(255, 183, 77, 0.8);
-            }}
-            
-            #soundContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                margin: {ModernUITheme.SPACE_MD} 0;
-            }}
-            
-            #soundHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: white;
-                text-align: center;
-            }}
-            
-            #soundToggle {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                min-width: 50px;
-            }}
-            
-            #soundToggle:!checked {{
-                background-color: {ModernUITheme.ERROR};
-            }}
-            
-            #soundStop {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_XS};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-            }}
-            
-            #userContainer {{
-                background-color: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #userName {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: white;
-            }}
-            
-            #userRoleAdmin {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #FFB74D;
-                font-weight: 500;
-            }}
-            
-            #userRoleSupervisor {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #81C784;
-                font-weight: 500;
-            }}
-            
-            #userRoleOperator {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: #64B5F6;
-                font-weight: 500;
-            }}
-            
-            /* Content Area */
-            #modernContentArea {{
-                background-color: {ModernUITheme.BACKGROUND};
-            }}
-            
-            #modernStackedWidget {{
-                background-color: transparent;
-            }}
-            
-            #modernPage {{
-                background-color: transparent;
-            }}
-            
-            /* Page Headers */
-            #pageHeader {{
-                background-color: transparent;
-                margin-bottom: {ModernUITheme.SPACE_XL};
-            }}
-            
-            #pageTitle {{
-                font-size: {ModernUITheme.FONT_SIZE_3XL};
-                font-weight: 700;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin: 0;
-                letter-spacing: -0.5px;
-            }}
-            
-            #pageSubtitle {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 400;
-                margin: {ModernUITheme.SPACE_SM} 0 0 0;
-            }}
-            
-            /* Buttons */
-            #refreshButton, #verifyButton, #addBanButton, #saveButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #refreshButton:hover, #verifyButton:hover, #addBanButton:hover, #saveButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-                transform: translateY(-1px);
-            }}
-            
-            #addBanButton {{
-                background-color: {ModernUITheme.ERROR};
-            }}
-            
-            #addBanButton:hover {{
-                background-color: #B91C1C;
-            }}
-            
-            #addUserButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #addUserButton:hover {{
-                background-color: #047857;
-            }}
-            
-            #resetButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                min-height: 44px;
-            }}
-            
-            #resetButton:hover {{
-                background-color: #B45309;
-            }}
-            
-            #browseButton, #testButton {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #browseButton:hover, #testButton:hover {{
-                background-color: #374151;
-            }}
-            
-            #quickButton {{
-                background-color: {ModernUITheme.WARNING};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_SM};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
-                min-height: 36px;
-            }}
-            
-            #quickButton:hover {{
-                background-color: #B45309;
-            }}
-            
-            #applyFilterButton {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #applyFilterButton:hover {{
-                background-color: {ModernUITheme.PRIMARY_DARK};
-            }}
-            
-            #clearFilterButton {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                min-height: 40px;
-            }}
-            
-            #clearFilterButton:hover {{
-                background-color: #374151;
-            }}
-            
-            #voicePlayButton {{
-                background-color: {ModernUITheme.SUCCESS};
-                color: white;
-                border: none;
-                border-radius: {ModernUITheme.RADIUS_MD};
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
-                min-height: 36px;
-            }}
-            
-            #voicePlayButton:hover {{
-                background-color: #047857;
-            }}
-            
-            /* Containers and Cards */
-            #filterContainer, #controlContainer, #inputContainer, #settingsContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                box-shadow: {ModernUITheme.SHADOW_SM};
-            }}
-            
-            #resultContainer {{
-                background-color: {ModernUITheme.SURFACE};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_XL};
-                box-shadow: {ModernUITheme.SHADOW_MD};
-            }}
-            
-            #voiceContainer {{
-                background-color: rgba(5, 150, 105, 0.1);
-                border: 1px solid rgba(5, 150, 105, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #statsContainer {{
-                background-color: transparent;
-            }}
-            
-            #noticeContainer {{
-                background-color: rgba(251, 191, 36, 0.1);
-                border: 1px solid rgba(251, 191, 36, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-            }}
-            
-            #noticeLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.WARNING};
-                font-weight: 500;
-                line-height: 1.5;
-            }}
-            
-            /* Labels and Text */
-            #filterHeader, #settingsHeader, #tableHeader, #statsHeader {{
-                font-size: {ModernUITheme.FONT_SIZE_XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                margin: 0;
-            }}
-            
-            #filterLabel, #settingsLabel, #inputLabel, #quickLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin: 0;
-            }}
-            
-            #filterStatus, #countLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-style: italic;
-                margin: 0;
-            }}
-            
-            #tankerInfoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_XL};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_PRIMARY};
-                text-align: center;
-                margin: 0;
-            }}
-            
-            #statusDisplayLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_3XL};
-                font-weight: 700;
-                text-align: center;
-                margin: {ModernUITheme.SPACE_LG} 0;
-                letter-spacing: -0.5px;
-            }}
-            
-            #reasonDisplayLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_LG};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                text-align: center;
-                line-height: 1.5;
-                margin: 0;
-            }}
-            
-            #voiceInfoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 500;
-            }}
-            
-            #dateToLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-weight: 500;
-                margin: 0 {ModernUITheme.SPACE_SM};
-            }}
-            
-            #statusLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 500;
-                padding: {ModernUITheme.SPACE_SM} 0;
-            }}
-            
-            #infoLabel {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                font-family: {ModernUITheme.FONT_FAMILY_MONO};
-                line-height: 1.4;
-            }}
-            
-            #settingsSubtext {{
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                color: {ModernUITheme.TEXT_MUTED};
-                margin: 0;
-            }}
-            
-            /* Form Inputs */
-            #tankerInput, #filterInput, #pathInput {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #tankerInput:focus, #filterInput:focus, #pathInput:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            }}
-            
-            #modernDateEdit, #modernCombo {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #modernDateEdit:focus, #modernCombo:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            #modernSpinBox, #modernDoubleSpinBox {{
-                border: 2px solid {ModernUITheme.BORDER};
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-                background-color: {ModernUITheme.BACKGROUND};
-                color: {ModernUITheme.TEXT_PRIMARY};
-                font-weight: 500;
-                min-height: 20px;
-            }}
-            
-            #modernSpinBox:focus, #modernDoubleSpinBox:focus {{
-                border-color: {ModernUITheme.PRIMARY};
-                outline: none;
-            }}
-            
-            /* Tables */
-            #modernTable {{
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                background-color: {ModernUITheme.BACKGROUND};
-                gridline-color: {ModernUITheme.BORDER_LIGHT};
-                selection-background-color: rgba(37, 99, 235, 0.1);
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
-            }}
-            
-            #modernTable::item {{
-                padding: {ModernUITheme.SPACE_MD};
-                border-bottom: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #modernTable::item:selected {{
-                background-color: rgba(37, 99, 235, 0.1);
-                color: {ModernUITheme.TEXT_PRIMARY};
-            }}
-            
-            #modernTable QHeaderView::section {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                font-weight: 600;
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                padding: {ModernUITheme.SPACE_MD};
-                border: none;
-                border-bottom: 2px solid {ModernUITheme.BORDER};
-                border-right: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-            
-            #modernTable QHeaderView::section:first {{
-                border-top-left-radius: {ModernUITheme.RADIUS_LG};
-            }}
-            
-            #modernTable QHeaderView::section:last {{
-                border-top-right-radius: {ModernUITheme.RADIUS_LG};
-                border-right: none;
-            }}
-            
-            /* Tab Widget */
-            #modernTabWidget {{
-                background-color: transparent;
-            }}
-            
-            #modernTabWidget::pane {{
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                background-color: {ModernUITheme.BACKGROUND};
-                margin-top: 8px;
-            }}
-            
-            #modernTabWidget QTabBar::tab {{
-                background-color: {ModernUITheme.SURFACE};
-                color: {ModernUITheme.TEXT_SECONDARY};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-                padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
-                margin-right: {ModernUITheme.SPACE_XS};
-                border-radius: {ModernUITheme.RADIUS_MD} {ModernUITheme.RADIUS_MD} 0 0;
-                font-weight: 500;
-                font-size: {ModernUITheme.FONT_SIZE_BASE};
-            }}
-            
-            #modernTabWidget QTabBar::tab:selected {{
-                background-color: {ModernUITheme.PRIMARY};
-                color: white;
-                border-color: {ModernUITheme.PRIMARY};
-                font-weight: 600;
-            }}
-            
-            #modernTabWidget QTabBar::tab:hover:!selected {{
-                background-color: rgba(37, 99, 235, 0.1);
-                color: {ModernUITheme.PRIMARY};
-            }}
-            
-            #modernTabPage {{
-                background-color: transparent;
-            }}
-            
-            /* Scrollbars */
-            QScrollBar:vertical {{
-                background-color: {ModernUITheme.SURFACE};
-                width: 12px;
-                border-radius: 6px;
-                margin: 0;
-            }}
-            
-            QScrollBar::handle:vertical {{
-                background-color: {ModernUITheme.TEXT_MUTED};
-                border-radius: 6px;
-                min-height: 20px;
-                margin: 2px;
-            }}
-            
-            QScrollBar::handle:vertical:hover {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-            }}
-            
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0;
-            }}
-            
-            QScrollBar:horizontal {{
-                background-color: {ModernUITheme.SURFACE};
-                height: 12px;
-                border-radius: 6px;
-                margin: 0;
-            }}
-            
-            QScrollBar::handle:horizontal {{
-                background-color: {ModernUITheme.TEXT_MUTED};
-                border-radius: 6px;
-                min-width: 20px;
-                margin: 2px;
-            }}
-            
-            QScrollBar::handle:horizontal:hover {{
-                background-color: {ModernUITheme.TEXT_SECONDARY};
-            }}
-            
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
-                width: 0;
-            }}
-        """)
+               /* Main Window Styling */
+               QMainWindow {{
+                   background-color: {ModernUITheme.BACKGROUND};
+                   font-family: {ModernUITheme.FONT_FAMILY};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+               }}
 
-    # Include all the existing methods from the original class
-    # (toggle_sound, stop_warning_sound, play_warning_sound_for_status, etc.)
-    # Continue with rest of methods...
+               /* Status Bar */
+               #modernStatusBar {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border-top: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_SM};
+               }}
+
+               /* Sidebar Styling */
+               #modernSidebar {{
+                   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+                       stop:0 {ModernUITheme.DARK_PRIMARY}, stop:1 {ModernUITheme.DARK_SECONDARY});
+                   border-right: 1px solid {ModernUITheme.BORDER};
+               }}
+
+               #titleContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   padding: {ModernUITheme.SPACE_LG};
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #sidebarTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_2XL};
+                   font-weight: 700;
+                   color: white;
+                   margin: 0;
+               }}
+
+               #sidebarSubtitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: rgba(255, 255, 255, 0.8);
+                   font-weight: 500;
+                   margin: 0;
+               }}
+
+               /* Navigation Styling */
+               #navContainer {{
+                   background-color: transparent;
+               }}
+
+               #navButtonContainer {{
+                   background-color: transparent;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   border: none;
+                   margin: {ModernUITheme.SPACE_XS} 0;
+                   transition: all 0.2s ease;
+               }}
+
+               #navButtonContainer:hover {{
+                   background-color: rgba(255, 255, 255, 0.1);
+                   transform: translateX(4px);
+               }}
+
+               #navButtonContainerDisabled {{
+                   background-color: transparent;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   opacity: 0.5;
+               }}
+
+               #navIcon {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: white;
+                   min-width: 24px;
+               }}
+
+               #navText {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   color: white;
+               }}
+
+               /* Sidebar Components */
+               #restrictionNotice {{
+                   background-color: rgba(255, 183, 77, 0.1);
+                   border: 1px solid rgba(255, 183, 77, 0.3);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   margin: {ModernUITheme.SPACE_MD} 0;
+               }}
+
+               #restrictionTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: #FFB74D;
+               }}
+
+               #restrictionDesc {{
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   color: rgba(255, 183, 77, 0.8);
+               }}
+
+               #soundContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border: 1px solid rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   margin: {ModernUITheme.SPACE_MD} 0;
+               }}
+
+               #soundHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: white;
+                   text-align: center;
+               }}
+
+               #soundToggle {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   min-width: 50px;
+               }}
+
+               #soundToggle:!checked {{
+                   background-color: {ModernUITheme.ERROR};
+               }}
+
+               #soundStop {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_XS};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+               }}
+
+               #userContainer {{
+                   background-color: rgba(255, 255, 255, 0.05);
+                   border: 1px solid rgba(255, 255, 255, 0.1);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #userName {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: white;
+               }}
+
+               #userRoleAdmin {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #FFB74D;
+                   font-weight: 500;
+               }}
+
+               #userRoleSupervisor {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #81C784;
+                   font-weight: 500;
+               }}
+
+               #userRoleOperator {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: #64B5F6;
+                   font-weight: 500;
+               }}
+
+               /* Content Area */
+               #modernContentArea {{
+                   background-color: {ModernUITheme.BACKGROUND};
+               }}
+
+               #modernStackedWidget {{
+                   background-color: transparent;
+               }}
+
+               #modernPage {{
+                   background-color: transparent;
+               }}
+
+               /* Page Headers */
+               #pageHeader {{
+                   background-color: transparent;
+                   margin-bottom: {ModernUITheme.SPACE_XL};
+               }}
+
+               #pageTitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_3XL};
+                   font-weight: 700;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin: 0;
+                   letter-spacing: -0.5px;
+               }}
+
+               #pageSubtitle {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 400;
+                   margin: {ModernUITheme.SPACE_SM} 0 0 0;
+               }}
+
+               /* Buttons */
+               #refreshButton, #verifyButton, #addBanButton, #saveButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #refreshButton:hover, #verifyButton:hover, #addBanButton:hover, #saveButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+                   transform: translateY(-1px);
+               }}
+
+               #addBanButton {{
+                   background-color: {ModernUITheme.ERROR};
+               }}
+
+               #addBanButton:hover {{
+                   background-color: #B91C1C;
+               }}
+
+               #addUserButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #addUserButton:hover {{
+                   background-color: #047857;
+               }}
+
+               #resetButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   min-height: 44px;
+               }}
+
+               #resetButton:hover {{
+                   background-color: #B45309;
+               }}
+
+               #browseButton, #testButton {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #browseButton:hover, #testButton:hover {{
+                   background-color: #374151;
+               }}
+
+               #quickButton {{
+                   background-color: {ModernUITheme.WARNING};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_SM};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_MD};
+                   min-height: 36px;
+               }}
+
+               #quickButton:hover {{
+                   background-color: #B45309;
+               }}
+
+               #applyFilterButton {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #applyFilterButton:hover {{
+                   background-color: {ModernUITheme.PRIMARY_DARK};
+               }}
+
+               #clearFilterButton {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   min-height: 40px;
+               }}
+
+               #clearFilterButton:hover {{
+                   background-color: #374151;
+               }}
+
+               #voicePlayButton {{
+                   background-color: {ModernUITheme.SUCCESS};
+                   color: white;
+                   border: none;
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                   min-height: 36px;
+               }}
+
+               #voicePlayButton:hover {{
+                   background-color: #047857;
+               }}
+
+               /* Containers and Cards */
+               #filterContainer, #controlContainer, #inputContainer, #settingsContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   box-shadow: {ModernUITheme.SHADOW_SM};
+               }}
+
+               #resultContainer {{
+                   background-color: {ModernUITheme.SURFACE};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_XL};
+                   box-shadow: {ModernUITheme.SHADOW_MD};
+               }}
+
+               #voiceContainer {{
+                   background-color: rgba(5, 150, 105, 0.1);
+                   border: 1px solid rgba(5, 150, 105, 0.2);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #statsContainer {{
+                   background-color: transparent;
+               }}
+
+               #noticeContainer {{
+                   background-color: rgba(251, 191, 36, 0.1);
+                   border: 1px solid rgba(251, 191, 36, 0.2);
+                   border-radius: {ModernUITheme.RADIUS_MD};
+               }}
+
+               #noticeLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.WARNING};
+                   font-weight: 500;
+                   line-height: 1.5;
+               }}
+
+               /* Labels and Text */
+               #filterHeader, #settingsHeader, #tableHeader, #statsHeader {{
+                   font-size: {ModernUITheme.FONT_SIZE_XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   margin: 0;
+               }}
+
+               #filterLabel, #settingsLabel, #inputLabel, #quickLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   margin: 0;
+               }}
+
+               #filterStatus, #countLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-style: italic;
+                   margin: 0;
+               }}
+
+               #tankerInfoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_XL};
+                   font-weight: 600;
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   text-align: center;
+                   margin: 0;
+               }}
+
+               #statusDisplayLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_3XL};
+                   font-weight: 700;
+                   text-align: center;
+                   margin: {ModernUITheme.SPACE_LG} 0;
+                   letter-spacing: -0.5px;
+               }}
+
+               #reasonDisplayLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_LG};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   text-align: center;
+                   line-height: 1.5;
+                   margin: 0;
+               }}
+
+               #voiceInfoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 500;
+               }}
+
+               #dateToLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-weight: 500;
+                   margin: 0 {ModernUITheme.SPACE_SM};
+               }}
+
+               #statusLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 500;
+                   padding: {ModernUITheme.SPACE_SM} 0;
+               }}
+
+               #infoLabel {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   font-family: {ModernUITheme.FONT_FAMILY_MONO};
+                   line-height: 1.4;
+               }}
+
+               #settingsSubtext {{
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   color: {ModernUITheme.TEXT_MUTED};
+                   margin: 0;
+               }}
+
+               /* Form Inputs */
+               #tankerInput, #filterInput, #pathInput {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #tankerInput:focus, #filterInput:focus, #pathInput:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+                   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+               }}
+
+               #modernDateEdit, #modernCombo {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #modernDateEdit:focus, #modernCombo:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               #modernSpinBox, #modernDoubleSpinBox {{
+                   border: 2px solid {ModernUITheme.BORDER};
+                   border-radius: {ModernUITheme.RADIUS_MD};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   color: {ModernUITheme.TEXT_PRIMARY};
+                   font-weight: 500;
+                   min-height: 20px;
+               }}
+
+               #modernSpinBox:focus, #modernDoubleSpinBox:focus {{
+                   border-color: {ModernUITheme.PRIMARY};
+                   outline: none;
+               }}
+
+               /* Tables */
+               #modernTable {{
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   gridline-color: {ModernUITheme.BORDER_LIGHT};
+                   selection-background-color: rgba(37, 99, 235, 0.1);
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   font-weight: 500;
+               }}
+
+               #modernTable::item {{
+                   padding: {ModernUITheme.SPACE_MD};
+                   border-bottom: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #modernTable::item:selected {{
+                   background-color: rgba(37, 99, 235, 0.1);
+                   color: {ModernUITheme.TEXT_PRIMARY};
+               }}
+
+               #modernTable QHeaderView::section {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   font-weight: 600;
+                   font-size: {ModernUITheme.FONT_SIZE_SM};
+                   padding: {ModernUITheme.SPACE_MD};
+                   border: none;
+                   border-bottom: 2px solid {ModernUITheme.BORDER};
+                   border-right: 1px solid {ModernUITheme.BORDER_LIGHT};
+               }}
+
+               #modernTable QHeaderView::section:first {{
+                   border-top-left-radius: {ModernUITheme.RADIUS_LG};
+               }}
+
+               #modernTable QHeaderView::section:last {{
+                   border-top-right-radius: {ModernUITheme.RADIUS_LG};
+                   border-right: none;
+               }}
+
+               /* Tab Widget */
+               #modernTabWidget {{
+                   background-color: transparent;
+               }}
+
+               #modernTabWidget::pane {{
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   border-radius: {ModernUITheme.RADIUS_LG};
+                   background-color: {ModernUITheme.BACKGROUND};
+                   margin-top: 8px;
+               }}
+
+               #modernTabWidget QTabBar::tab {{
+                   background-color: {ModernUITheme.SURFACE};
+                   color: {ModernUITheme.TEXT_SECONDARY};
+                   border: 1px solid {ModernUITheme.BORDER_LIGHT};
+                   padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_2XL};
+                   margin-right: {ModernUITheme.SPACE_XS};
+                   border-radius: {ModernUITheme.RADIUS_MD} {ModernUITheme.RADIUS_MD} 0 0;
+                   font-weight: 500;
+                   font-size: {ModernUITheme.FONT_SIZE_BASE};
+               }}
+
+               #modernTabWidget QTabBar::tab:selected {{
+                   background-color: {ModernUITheme.PRIMARY};
+                   color: white;
+                   border-color: {ModernUITheme.PRIMARY};
+                   font-weight: 600;
+               }}
+
+               #modernTabWidget QTabBar::tab:hover:!selected {{
+                   background-color: rgba(37, 99, 235, 0.1);
+                   color: {ModernUITheme.PRIMARY};
+               }}
+
+               #modernTabPage {{
+                   background-color: transparent;
+               }}
+
+               /* Scrollbars */
+               QScrollBar:vertical {{
+                   background-color: {ModernUITheme.SURFACE};
+                   width: 12px;
+                   border-radius: 6px;
+                   margin: 0;
+               }}
+
+               QScrollBar::handle:vertical {{
+                   background-color: {ModernUITheme.TEXT_MUTED};
+                   border-radius: 6px;
+                   min-height: 20px;
+                   margin: 2px;
+               }}
+
+               QScrollBar::handle:vertical:hover {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+               }}
+
+               QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                   height: 0;
+               }}
+
+               QScrollBar:horizontal {{
+                   background-color: {ModernUITheme.SURFACE};
+                   height: 12px;
+                   border-radius: 6px;
+                   margin: 0;
+               }}
+
+               QScrollBar::handle:horizontal {{
+                   background-color: {ModernUITheme.TEXT_MUTED};
+                   border-radius: 6px;
+                   min-width: 20px;
+                   margin: 2px;
+               }}
+
+               QScrollBar::handle:horizontal:hover {{
+                   background-color: {ModernUITheme.TEXT_SECONDARY};
+               }}
+
+               QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                   width: 0;
+               }}
+           """)
 
     def toggle_sound(self):
         """Toggle sound enabled/disabled"""
@@ -4556,75 +6153,8 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing dashboard filter: {e}")
 
     def refresh_dashboard(self):
-        """Refresh dashboard with proper filter handling"""
-        try:
-            # Clear existing stats cards
-            while self.ban_stats_container.count():
-                child = self.ban_stats_container.takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-
-            while self.verify_stats_container.count():
-                child = self.verify_stats_container.takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-
-            filters = self.current_dashboard_filters if self.dashboard_filters_applied else None
-
-            # Get ban statistics
-            ban_stats = self.db.get_ban_statistics(filters)
-
-            # Create modern ban statistics cards
-            ban_stats_data = [
-                ("Total Bans", ban_stats['total_bans'], ModernUITheme.ERROR),
-                ("Active Bans", ban_stats['active_bans'], "#DC2626"),
-                ("Permanent", ban_stats['permanent'], "#B91C1C"),
-                ("Temporary", ban_stats['temporary'], ModernUITheme.WARNING),
-                ("Permission Required", ban_stats['permission'], ModernUITheme.PRIMARY),
-                ("Reminders", ban_stats['reminder'], ModernUITheme.SUCCESS)
-            ]
-
-            for title, value, color in ban_stats_data:
-                card = self.create_stats_card(title, value, color)
-                self.ban_stats_container.addWidget(card)
-
-            self.ban_stats_container.addStretch()
-
-            # Get verification statistics
-            verify_stats = self.db.get_verification_statistics(filters)
-
-            # Create modern verification statistics cards
-            verify_stats_data = [
-                ("Total Verifications", verify_stats['total'], ModernUITheme.PRIMARY),
-                ("Allowed", verify_stats['allowed'], ModernUITheme.SUCCESS),
-                ("Rejected", verify_stats['rejected'], ModernUITheme.ERROR),
-                ("Conditional", verify_stats['conditional'], ModernUITheme.WARNING),
-                ("Success Rate", f"{verify_stats['success_rate']:.1f}%", ModernUITheme.SECONDARY)
-            ]
-
-            for title, value, color in verify_stats_data:
-                card = self.create_stats_card(title, value, color)
-                self.verify_stats_container.addWidget(card)
-
-            self.verify_stats_container.addStretch()
-
-            # Load recent data
-            self.load_recent_ban_records(filters)
-            self.load_recent_activity()
-
-            # Update status bar
-            current_time = datetime.now().strftime("%H:%M:%S")
-            filter_status = " (Filtered)" if self.dashboard_filters_applied else " (All Data)"
-            self.status_bar.showMessage(
-                f"Dashboard refreshed at {current_time}{filter_status} - "
-                f"{ban_stats['total_bans']} bans, {verify_stats['total']} verifications"
-            )
-
-            logger.info(f"Dashboard refreshed with filters: {filters is not None}")
-
-        except Exception as e:
-            logger.error(f"Error refreshing dashboard: {e}")
-            self.status_bar.showMessage(f"Dashboard refresh error: {e}")
+        """Legacy method redirects to async version"""
+        self.refresh_dashboard_async()
 
     def load_recent_ban_records(self, filters=None):
         """Load recent ban records from ban_records table"""
@@ -4726,48 +6256,12 @@ class MainWindow(QMainWindow):
             logger.error(f"Error loading recent activity: {e}")
 
     def verify_latest_tanker(self):
-        """Verify latest tanker from server"""
-        try:
-            self.status_bar.showMessage("Verifying latest tanker...")
-
-            status, reason, details = self.db.simple_tanker_verification(self.user_info['username'])
-            tanker_number = details.get("tanker_number", "UNKNOWN")
-
-            self.update_auto_verification_display(tanker_number, status, reason, details)
-
-            if details.get("play_sound", False):
-                self.play_warning_sound_for_status(status)
-
-            self.refresh_dashboard()
-            self.status_bar.showMessage(f"Latest tanker verified: {tanker_number}")
-
-        except Exception as e:
-            logger.error(f"Error verifying latest tanker: {e}")
-            self.status_bar.showMessage(f"Verification error: {e}")
+        """Legacy method redirects to async version"""
+        self.verify_latest_tanker_async()
 
     def verify_manual_tanker(self):
-        """Verify manually entered tanker"""
-        try:
-            tanker_number = self.manual_tanker_input.text().strip().upper()
-            if not tanker_number:
-                QMessageBox.warning(self, "Input Required", "Please enter a tanker number")
-                return
-
-            self.status_bar.showMessage(f"Verifying tanker: {tanker_number}")
-
-            status, reason, details = self.db.verify_specific_tanker(tanker_number, self.user_info['username'])
-
-            self.update_manual_verification_display(tanker_number, status, reason, details)
-
-            if details.get("play_sound", False):
-                self.play_warning_sound_for_status(status)
-
-            self.refresh_dashboard()
-            self.status_bar.showMessage(f"Manual verification completed: {tanker_number}")
-
-        except Exception as e:
-            logger.error(f"Error verifying manual tanker: {e}")
-            self.status_bar.showMessage(f"Manual verification error: {e}")
+        """Legacy method redirects to async version"""
+        self.verify_manual_tanker_async()
 
     def update_auto_verification_display(self, tanker_number, status, reason, details):
         """Update auto verification display with modern styling"""
@@ -4879,10 +6373,10 @@ class MainWindow(QMainWindow):
             self.manual_voice_info_label.setText(f"❌ Playback failed: {message}")
 
     def show_add_ban_dialog(self):
-        """Show modern add ban dialog"""
+        """Show modern add ban dialog with improved layout and spacing"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add New Ban Record")
-        dialog.setFixedSize(650, 550)
+        dialog.setFixedSize(800, 700)  # Increased size for better spacing
         dialog.setStyleSheet(f"""
             QDialog {{
                 background-color: {ModernUITheme.BACKGROUND};
@@ -4890,175 +6384,437 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
-        layout.setContentsMargins(30, 30, 30, 30)
+        # Main layout with better margins
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setSpacing(int(ModernUITheme.SPACE_3XL.replace('px', '')))
+        main_layout.setContentsMargins(40, 30, 40, 30)
 
-        # Header
-        header_label = QLabel("Add New Ban Record")
-        header_label.setStyleSheet(f"""
-            font-size: {ModernUITheme.FONT_SIZE_2XL};
-            font-weight: 600;
-            color: {ModernUITheme.TEXT_PRIMARY};
-            margin-bottom: {ModernUITheme.SPACE_XL};
-        """)
-        layout.addWidget(header_label)
+        # Header section
+        header_section = self.create_dialog_header("Add New Ban Record", "🚫")
+        main_layout.addWidget(header_section)
 
-        # Form container
-        form_container = QFrame()
-        form_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {ModernUITheme.SURFACE};
-                border-radius: {ModernUITheme.RADIUS_LG};
-                padding: {ModernUITheme.SPACE_2XL};
-                border: 1px solid {ModernUITheme.BORDER_LIGHT};
-            }}
-        """)
-        form_layout = QVBoxLayout(form_container)
-        form_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
-
-        # Form fields
-        tanker_input = QLineEdit()
-        tanker_input.setObjectName("modernInput")
-        tanker_input.setPlaceholderText("Enter tanker number")
-
-        reason_input = QTextEdit()
-        reason_input.setObjectName("modernTextEdit")
-        reason_input.setPlaceholderText("Enter ban reason")
-        reason_input.setMaximumHeight(80)
-
-        type_combo = QComboBox()
-        type_combo.setObjectName("modernCombo")
-        type_combo.addItems(["temporary", "permanent", "permission", "reminder"])
-
-        start_date = QDateEdit()
-        start_date.setObjectName("modernDateEdit")
-        start_date.setDate(QDate.currentDate())
-        start_date.setCalendarPopup(True)
-
-        end_date = QDateEdit()
-        end_date.setObjectName("modernDateEdit")
-        end_date.setDate(QDate.currentDate().addDays(30))
-        end_date.setCalendarPopup(True)
-
-        # Add form fields with labels
-        fields = [
-            ("Tanker Number:", tanker_input),
-            ("Ban Reason:", reason_input),
-            ("Ban Type:", type_combo),
-            ("Start Date:", start_date),
-            ("End Date:", end_date)
-        ]
-
-        for label_text, widget in fields:
-            field_layout = QVBoxLayout()
-            label = QLabel(label_text)
-            label.setStyleSheet(f"""
-                font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 600;
-                color: {ModernUITheme.TEXT_SECONDARY};
-                margin-bottom: {ModernUITheme.SPACE_SM};
-            """)
-            field_layout.addWidget(label)
-            field_layout.addWidget(widget)
-            form_layout.addLayout(field_layout)
-
-        layout.addWidget(form_container)
+        # Form section
+        form_section = self.create_ban_form_section()
+        main_layout.addWidget(form_section)
 
         # Audio recording section
-        audio_container = QFrame()
-        audio_container.setStyleSheet(f"""
-            QFrame {{
-                background-color: rgba(5, 150, 105, 0.1);
-                border: 1px solid rgba(5, 150, 105, 0.2);
-                border-radius: {ModernUITheme.RADIUS_MD};
-                padding: {ModernUITheme.SPACE_LG};
-            }}
-        """)
-        audio_layout = QHBoxLayout(audio_container)
+        audio_section = self.create_audio_recording_section()
+        main_layout.addWidget(audio_section)
 
-        audio_label = QLabel("Voice Note:")
-        audio_label.setStyleSheet(f"""
-            font-weight: 600;
-            color: {ModernUITheme.TEXT_SECONDARY};
-        """)
-        audio_layout.addWidget(audio_label)
+        # Action buttons
+        button_section = self.create_dialog_buttons(dialog, form_section, audio_section)
+        main_layout.addWidget(button_section)
+
+        # Apply comprehensive styling
+        self.apply_ban_dialog_styles(dialog)
+
+        dialog.exec_()
+
+    def create_dialog_header(self, title, icon):
+        """Create a modern dialog header with icon and title"""
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("dialogIcon")
+        icon_label.setFixedSize(48, 48)
+        icon_label.setAlignment(Qt.AlignCenter)
+
+        # Title and subtitle
+        title_container = QWidget()
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+
+        title_label = QLabel(title)
+        title_label.setObjectName("dialogTitle")
+
+        subtitle_label = QLabel("Fill in the details to create a new ban record")
+        subtitle_label.setObjectName("dialogSubtitle")
+
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(subtitle_label)
+
+        header_layout.addWidget(icon_label)
+        header_layout.addWidget(title_container)
+        header_layout.addStretch()
+
+        return header_widget
+
+    def create_ban_form_section(self):
+        """Create the main form section with proper spacing and grouping"""
+        form_container = QFrame()
+        form_container.setObjectName("formContainer")
+
+        # Use QFormLayout for better field organization
+        form_layout = QFormLayout(form_container)
+        form_layout.setVerticalSpacing(int(ModernUITheme.SPACE_2XL.replace('px', '')))
+        form_layout.setHorizontalSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+        form_layout.setContentsMargins(32, 32, 32, 32)
+        form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        form_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        # Create form fields with consistent sizing
+        tanker_input = self.create_modern_line_edit("Enter tanker number (e.g., TR001)")
+        tanker_input.setObjectName("tankerInput")
+
+        reason_input = self.create_modern_text_edit("Enter detailed ban reason...")
+        reason_input.setObjectName("reasonInput")
+
+        type_combo = self.create_modern_combo_box(["temporary", "permanent", "permission", "reminder"])
+        type_combo.setObjectName("typeCombo")
+
+        start_date = self.create_modern_date_edit()
+        start_date.setDate(QDate.currentDate())
+        start_date.setObjectName("startDate")
+
+        end_date = self.create_modern_date_edit()
+        end_date.setDate(QDate.currentDate().addDays(30))
+        end_date.setObjectName("endDate")
+
+        # Create field labels with modern styling
+        tanker_label = self.create_form_label("Tanker Number:", "🚛", required=True)
+        reason_label = self.create_form_label("Ban Reason:", "📝", required=True)
+        type_label = self.create_form_label("Ban Type:", "🏷️")
+        start_label = self.create_form_label("Start Date:", "📅")
+        end_label = self.create_form_label("End Date:", "📅")
+
+        # Add fields to form layout
+        form_layout.addRow(tanker_label, tanker_input)
+        form_layout.addRow(reason_label, reason_input)
+        form_layout.addRow(type_label, type_combo)
+        form_layout.addRow(start_label, start_date)
+        form_layout.addRow(end_label, end_date)
+
+        # Store references for later use
+        form_container.tanker_input = tanker_input
+        form_container.reason_input = reason_input
+        form_container.type_combo = type_combo
+        form_container.start_date = start_date
+        form_container.end_date = end_date
+
+        return form_container
+
+    def create_modern_line_edit(self, placeholder):
+        """Create a modern styled line edit with consistent sizing"""
+        line_edit = QLineEdit()
+        line_edit.setPlaceholderText(placeholder)
+        line_edit.setObjectName("modernInput")
+        line_edit.setMinimumHeight(44)
+        line_edit.setMinimumWidth(300)
+        return line_edit
+
+    def create_modern_text_edit(self, placeholder):
+        """Create a modern styled text edit"""
+        text_edit = QTextEdit()
+        text_edit.setPlaceholderText(placeholder)
+        text_edit.setObjectName("modernTextEdit")
+        text_edit.setMinimumHeight(100)
+        text_edit.setMaximumHeight(120)
+        text_edit.setMinimumWidth(300)
+        return text_edit
+
+    def create_modern_combo_box(self, items):
+        """Create a modern styled combo box"""
+        combo = QComboBox()
+        combo.addItems(items)
+        combo.setObjectName("modernCombo")
+        combo.setMinimumHeight(44)
+        combo.setMinimumWidth(300)
+        return combo
+
+    def create_modern_date_edit(self):
+        """Create a modern styled date edit"""
+        date_edit = QDateEdit()
+        date_edit.setObjectName("modernDateEdit")
+        date_edit.setCalendarPopup(True)
+        date_edit.setMinimumHeight(44)
+        date_edit.setMinimumWidth(300)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        return date_edit
+
+    def create_form_label(self, text, icon, required=False):
+        """Create a modern form label with icon"""
+        label_widget = QWidget()
+        label_layout = QHBoxLayout(label_widget)
+        label_layout.setContentsMargins(0, 0, 8, 0)
+        label_layout.setSpacing(8)
+
+        # Icon
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("fieldIcon")
+
+        # Text
+        text_label = QLabel(text)
+        text_label.setObjectName("fieldLabel")
+
+        if required:
+            text_label.setText(f"{text} <span style='color: {ModernUITheme.DANGER};'>*</span>")
+
+        label_layout.addStretch()
+        label_layout.addWidget(icon_label)
+        label_layout.addWidget(text_label)
+
+        return label_widget
+
+    def create_audio_recording_section(self):
+        """Create an enhanced audio recording section - WORKING VERSION"""
+        audio_container = QFrame()
+        audio_container.setObjectName("audioContainer")
+
+        audio_layout = QVBoxLayout(audio_container)
+        audio_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+        audio_layout.setContentsMargins(24, 20, 24, 20)
+
+        # Header
+        header_layout = QHBoxLayout()
+
+        audio_icon = QLabel("🎙️")
+        audio_icon.setObjectName("audioSectionIcon")
+
+        audio_title = QLabel("Voice Note (Optional)")
+        audio_title.setObjectName("audioSectionTitle")
+
+        header_layout.addWidget(audio_icon)
+        header_layout.addWidget(audio_title)
+        header_layout.addStretch()
+
+        # Status and controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Status indicator
+        status_container = QFrame()
+        status_container.setObjectName("statusContainer")
+        status_layout = QHBoxLayout(status_container)
+        status_layout.setContentsMargins(16, 8, 16, 8)
+
+        status_icon = QLabel("⚪")
+        status_icon.setObjectName("statusIcon")
 
         voice_status_label = QLabel("No recording")
-        voice_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_MUTED}; font-style: italic;")
-        audio_layout.addWidget(voice_status_label)
+        voice_status_label.setObjectName("statusLabel")
 
-        audio_layout.addStretch()
+        status_layout.addWidget(status_icon)
+        status_layout.addWidget(voice_status_label)
+        status_layout.addStretch()
 
-        record_voice_btn = QPushButton("🎙️ Record Voice")
-        record_voice_btn.setObjectName("voiceRecordButton")
+        # Record button
+        record_voice_btn = QPushButton("🎙️ Start Recording")
+        record_voice_btn.setObjectName("recordButton")
+        record_voice_btn.setMinimumHeight(40)
+        record_voice_btn.setMinimumWidth(160)
+
         if not AUDIO_AVAILABLE:
             record_voice_btn.setEnabled(False)
             record_voice_btn.setText("🎙️ Audio Not Available")
+            record_voice_btn.setToolTip("Audio recording is not available on this system")
 
+        # Play button (initially hidden)
+        play_voice_btn = QPushButton("▶️ Play Recording")
+        play_voice_btn.setObjectName("playButton")
+        play_voice_btn.setMinimumHeight(40)
+        play_voice_btn.setMinimumWidth(160)
+        play_voice_btn.hide()
+
+        controls_layout.addWidget(status_container)
+        controls_layout.addStretch()
+        controls_layout.addWidget(play_voice_btn)
+        controls_layout.addWidget(record_voice_btn)
+
+        audio_layout.addLayout(header_layout)
+        audio_layout.addLayout(controls_layout)
+
+        # Store recorded data reference for later access
         recorded_data = None
 
         def record_voice():
+            """Handle voice recording with proper implementation"""
             nonlocal recorded_data
-            audio_dialog = AudioRecordDialog(dialog)
-            if audio_dialog.exec_() == QDialog.Accepted:
-                recorded_data = audio_dialog.recorded_data
-                if recorded_data:
-                    voice_status_label.setText("✅ Voice recorded")
-                    voice_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
+            try:
+                logger.info("Opening audio record dialog")
+                audio_dialog = AudioRecordDialog(audio_container)
 
+                if audio_dialog.exec_() == QDialog.Accepted:
+                    recorded_data = audio_dialog.recorded_data
+                    if recorded_data:
+                        logger.info(f"Voice recorded successfully, size: {len(recorded_data)} bytes")
+                        # Update UI to show successful recording
+                        status_icon.setText("🟢")
+                        voice_status_label.setText("Voice recorded successfully")
+                        voice_status_label.setObjectName("statusLabelSuccess")
+                        record_voice_btn.setText("🎙️ Re-record")
+                        play_voice_btn.show()
+
+                        # Update container styling
+                        status_container.setObjectName("statusContainerSuccess")
+                        if hasattr(audio_container, 'style'):
+                            audio_container.style().unpolish(status_container)
+                            audio_container.style().polish(status_container)
+                            audio_container.style().unpolish(voice_status_label)
+                            audio_container.style().polish(voice_status_label)
+                    else:
+                        logger.warning("No audio data recorded")
+                else:
+                    logger.info("Audio recording cancelled by user")
+
+            except Exception as e:
+                logger.error(f"Error in record_voice: {e}")
+                QMessageBox.warning(audio_container, "Recording Error", f"Failed to record audio: {e}")
+
+        def play_voice():
+            """Handle voice playback with proper implementation"""
+            if recorded_data:
+                try:
+                    logger.info("Playing recorded voice note")
+                    voice_status_label.setText("Playing recording...")
+
+                    # Create temporary recorder for playback
+                    temp_recorder = AudioRecorder()
+
+                    def playback_callback(success, msg):
+                        voice_status_label.setText("Playback completed" if success else f"Playback failed: {msg}")
+                        temp_recorder.cleanup()
+
+                    temp_recorder.play_audio(recorded_data, playback_callback)
+
+                except Exception as e:
+                    logger.error(f"Error in play_voice: {e}")
+                    QMessageBox.warning(audio_container, "Playback Error", f"Failed to play audio: {e}")
+            else:
+                logger.warning("No recorded data available for playback")
+                QMessageBox.information(audio_container, "No Recording", "No audio recording available to play.")
+
+        # Connect button events
         record_voice_btn.clicked.connect(record_voice)
-        audio_layout.addWidget(record_voice_btn)
+        play_voice_btn.clicked.connect(play_voice)
 
-        layout.addWidget(audio_container)
+        # Store recorded data reference for later access
+        audio_container.get_recorded_data = lambda: recorded_data
 
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(int(ModernUITheme.SPACE_MD.replace('px', '')))
+        logger.info("Audio recording section created successfully")
+        return audio_container
 
+    def create_dialog_buttons(self, dialog, form_section, audio_section):
+        """Create dialog action buttons with modern styling"""
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(int(ModernUITheme.SPACE_LG.replace('px', '')))
+
+        # Info text
+        info_label = QLabel("* Required fields")
+        info_label.setObjectName("infoLabel")
+
+        button_layout.addWidget(info_label)
+        button_layout.addStretch()
+
+        # Cancel button
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("secondaryButton")
+        cancel_btn.setObjectName("cancelButton")
+        cancel_btn.setMinimumHeight(44)
+        cancel_btn.setMinimumWidth(100)
         cancel_btn.clicked.connect(dialog.reject)
 
-        save_btn = QPushButton("Save Ban")
-        save_btn.setObjectName("primaryButton")
+        # Save button
+        save_btn = QPushButton("💾 Save Ban Record")
+        save_btn.setObjectName("saveButton")
+        save_btn.setMinimumHeight(44)
+        save_btn.setMinimumWidth(160)
 
         def save_ban():
-            tanker = tanker_input.text().strip().upper()
-            reason = reason_input.toPlainText().strip()
-            ban_type = type_combo.currentText()
-            start_str = start_date.date().toString("yyyy-MM-dd")
-            end_str = end_date.date().toString("yyyy-MM-dd") if ban_type != "permanent" else None
+            # Get form data
+            tanker = form_section.tanker_input.text().strip().upper()
+            reason = form_section.reason_input.toPlainText().strip()
+            ban_type = form_section.type_combo.currentText()
+            start_str = form_section.start_date.date().toString("yyyy-MM-dd")
+            end_str = form_section.end_date.date().toString("yyyy-MM-dd") if ban_type != "permanent" else None
 
+            # Validation
             if not tanker or not reason:
-                QMessageBox.warning(dialog, "Input Error", "Please fill all required fields")
+                QMessageBox.warning(dialog, "Input Error",
+                                    "Please fill all required fields:\n• Tanker Number\n• Ban Reason")
                 return
 
+            # Get recorded audio data
+            recorded_data = audio_section.get_recorded_data()
             voice_filename = f"voice_{tanker}_{int(time.time())}.wav" if recorded_data else None
 
+            # Save to database
             success = self.db.add_ban_record(
                 tanker, reason, ban_type, start_str, end_str, self.user_info['username'],
                 recorded_data, voice_filename
             )
 
             if success:
-                QMessageBox.information(dialog, "Success", f"Ban record created for {tanker}")
+                QMessageBox.information(dialog, "Success",
+                                        f"Ban record created successfully for {tanker}")
                 dialog.accept()
                 self.load_bans_table()
                 self.refresh_dashboard()
                 self.status_bar.showMessage(f"Ban record added for {tanker}")
             else:
-                QMessageBox.critical(dialog, "Error", "Failed to create ban record")
+                QMessageBox.critical(dialog, "Error",
+                                     "Failed to create ban record. Please try again.")
 
         save_btn.clicked.connect(save_ban)
 
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addWidget(save_btn)
-        layout.addLayout(btn_layout)
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(save_btn)
 
-        # Apply modern input styles to the dialog
+        return button_container
+
+    def apply_ban_dialog_styles(self, dialog):
+        """Apply comprehensive modern styling to the ban dialog"""
         dialog.setStyleSheet(dialog.styleSheet() + f"""
-            #modernInput, #modernTextEdit {{
+            /* Dialog Header */
+            #dialogIcon {{
+                background-color: rgba(220, 38, 38, 0.1);
+                border-radius: {ModernUITheme.RADIUS_LG};
+                color: {ModernUITheme.DANGER};
+                font-size: {ModernUITheme.FONT_SIZE_2XL};
+                font-weight: bold;
+            }}
+
+            #dialogTitle {{
+                font-size: {ModernUITheme.FONT_SIZE_2XL};
+                font-weight: 700;
+                color: {ModernUITheme.TEXT_PRIMARY};
+                letter-spacing: -0.5px;
+            }}
+
+            #dialogSubtitle {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 400;
+            }}
+
+            /* Form Container */
+            #formContainer {{
+                background-color: {ModernUITheme.SURFACE};
+                border-radius: {ModernUITheme.RADIUS_LG};
+                border: 1px solid {ModernUITheme.BORDER_LIGHT};
+            }}
+
+            /* Form Labels */
+            #fieldIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_BASE};
+                color: {ModernUITheme.TEXT_MUTED};
+                min-width: 20px;
+            }}
+
+            #fieldLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                color: {ModernUITheme.TEXT_SECONDARY};
+                min-width: 120px;
+            }}
+
+            /* Form Inputs */
+            #modernInput, #modernTextEdit, #modernCombo, #modernDateEdit {{
                 border: 2px solid {ModernUITheme.BORDER};
                 border-radius: {ModernUITheme.RADIUS_MD};
                 padding: {ModernUITheme.SPACE_MD} {ModernUITheme.SPACE_LG};
@@ -5067,33 +6823,146 @@ class MainWindow(QMainWindow):
                 color: {ModernUITheme.TEXT_PRIMARY};
                 font-weight: 500;
             }}
-            
-            #modernInput:focus, #modernTextEdit:focus {{
+
+            #modernInput:focus, #modernTextEdit:focus, #modernCombo:focus, #modernDateEdit:focus {{
                 border-color: {ModernUITheme.PRIMARY};
                 outline: none;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
             }}
-            
-            #voiceRecordButton {{
+
+            #modernInput::placeholder, #modernTextEdit::placeholder {{
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 400;
+            }}
+
+            /* Audio Recording Section */
+            #audioContainer {{
+                background-color: rgba(5, 150, 105, 0.05);
+                border: 2px solid rgba(5, 150, 105, 0.15);
+                border-radius: {ModernUITheme.RADIUS_LG};
+                margin-top: {ModernUITheme.SPACE_MD};
+            }}
+
+            #audioSectionIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_XL};
+                color: {ModernUITheme.SUCCESS};
+            }}
+
+            #audioSectionTitle {{
+                font-size: {ModernUITheme.FONT_SIZE_LG};
+                font-weight: 600;
+                color: {ModernUITheme.TEXT_PRIMARY};
+            }}
+
+            /* Status Container */
+            #statusContainer {{
+                background-color: rgba(156, 163, 175, 0.1);
+                border: 1px solid rgba(156, 163, 175, 0.2);
+                border-radius: {ModernUITheme.RADIUS_MD};
+                min-width: 180px;
+            }}
+
+            #statusContainerSuccess {{
+                background-color: rgba(5, 150, 105, 0.1);
+                border: 1px solid rgba(5, 150, 105, 0.3);
+                border-radius: {ModernUITheme.RADIUS_MD};
+            }}
+
+            #statusIcon {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+            }}
+
+            #statusLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-weight: 500;
+            }}
+
+            #statusLabelSuccess {{
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                color: {ModernUITheme.SUCCESS};
+                font-weight: 600;
+            }}
+
+            /* Audio Buttons */
+            #recordButton {{
                 background-color: {ModernUITheme.SUCCESS};
                 color: white;
                 border: none;
                 border-radius: {ModernUITheme.RADIUS_MD};
                 font-size: {ModernUITheme.FONT_SIZE_SM};
-                font-weight: 500;
+                font-weight: 600;
                 padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                transition: all 0.2s ease;
             }}
-            
-            #voiceRecordButton:hover {{
+
+            #recordButton:hover {{
                 background-color: #047857;
+                transform: translateY(-1px);
             }}
-            
-            #voiceRecordButton:disabled {{
+
+            #recordButton:disabled {{
                 background-color: {ModernUITheme.TEXT_DISABLED};
                 color: {ModernUITheme.TEXT_MUTED};
+                transform: none;
+            }}
+
+            #playButton {{
+                background-color: {ModernUITheme.INFO};
+                color: white;
+                border: none;
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+                transition: all 0.2s ease;
+            }}
+
+            #playButton:hover {{
+                background-color: #0369a1;
+                transform: translateY(-1px);
+            }}
+
+            /* Dialog Buttons */
+            #infoLabel {{
+                font-size: {ModernUITheme.FONT_SIZE_XS};
+                color: {ModernUITheme.TEXT_MUTED};
+                font-style: italic;
+            }}
+
+            #cancelButton {{
+                background-color: transparent;
+                color: {ModernUITheme.TEXT_SECONDARY};
+                border: 2px solid {ModernUITheme.BORDER};
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_LG};
+            }}
+
+            #cancelButton:hover {{
+                background-color: {ModernUITheme.SURFACE};
+                border-color: {ModernUITheme.TEXT_SECONDARY};
+            }}
+
+            #saveButton {{
+                background-color: {ModernUITheme.PRIMARY};
+                color: white;
+                border: none;
+                border-radius: {ModernUITheme.RADIUS_MD};
+                font-size: {ModernUITheme.FONT_SIZE_SM};
+                font-weight: 600;
+                padding: {ModernUITheme.SPACE_SM} {ModernUITheme.SPACE_2XL};
+                transition: all 0.2s ease;
+            }}
+
+            #saveButton:hover {{
+                background-color: {ModernUITheme.PRIMARY_DARK};
+                transform: translateY(-1px);
+                box-shadow: {ModernUITheme.SHADOW_MD};
             }}
         """)
 
-        dialog.exec_()
 
     def apply_ban_filters(self):
         """Apply ban filters with proper filter handling"""
@@ -5232,135 +7101,29 @@ class MainWindow(QMainWindow):
             logger.error(f"Error clearing log filters: {e}")
 
     def load_bans_table(self):
-        """Load bans table with proper filter handling"""
-        try:
-            filters = self.current_ban_filters if self.ban_filters_applied else None
-            bans = self.db.get_all_bans(filters)
-            self.bans_table.setRowCount(0)
-
-            # Update ban count display
-            if hasattr(self, 'ban_count_label'):
-                filter_text = ""
-                if filters:
-                    applied_filters = []
-                    if filters.get('start_date') and filters.get('end_date'):
-                        applied_filters.append(f"Date: {filters['start_date']} to {filters['end_date']}")
-                    if filters.get('tanker_number'):
-                        applied_filters.append(f"Tanker: {filters['tanker_number']}")
-                    if filters.get('reason'):
-                        applied_filters.append(f"Reason: {filters['reason']}")
-                    if filters.get('ban_type'):
-                        applied_filters.append(f"Type: {filters['ban_type']}")
-
-                    if applied_filters:
-                        filter_text = f" (Filtered: {', '.join(applied_filters)})"
-                else:
-                    filter_text = " (All Records)"
-
-                self.ban_count_label.setText(
-                    f"📊 Showing {len(bans)} ban records from local database{filter_text}"
-                )
-
-            for row, ban in enumerate(bans):
-                self.bans_table.insertRow(row)
-
-                # Add data columns
-                for col in range(7):
-                    value = ban[col] if col < len(ban) else ""
-
-                    if col == 4 or col == 5:  # Date columns
-                        if value:
-                            try:
-                                date_obj = datetime.strptime(value, "%Y-%m-%d").date()
-                                formatted_date = date_obj.strftime("%d/%m/%Y")
-                            except:
-                                formatted_date = value
-                        else:
-                            formatted_date = "No End Date" if col == 5 else ""
-                        item = QTableWidgetItem(formatted_date)
-                    else:
-                        item = QTableWidgetItem(str(value) if value else "")
-
-                    # Color code ban types with modern colors
-                    if col == 3:  # Ban type column
-                        if value == "permanent":
-                            item.setForeground(QColor(ModernUITheme.ERROR))
-                            item.setToolTip("Permanent ban - Cannot enter")
-                        elif value == "temporary":
-                            item.setForeground(QColor(ModernUITheme.WARNING))
-                            item.setToolTip("Temporary ban - Time limited")
-                        elif value == "permission":
-                            item.setForeground(QColor(ModernUITheme.PRIMARY))
-                            item.setToolTip("Permission required - Special approval needed")
-                        elif value == "reminder":
-                            item.setForeground(QColor(ModernUITheme.SUCCESS))
-                            item.setToolTip("Reminder only - Warning message")
-
-                    self.bans_table.setItem(row, col, item)
-
-                # Add voice playback button
-                voice_data = ban[7] if len(ban) > 7 else None
-                tanker_number = ban[1] if len(ban) > 1 else ""
-
-                if voice_data and AUDIO_AVAILABLE:
-                    voice_btn = QPushButton("🎵 Play")
-                    voice_btn.setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {ModernUITheme.SUCCESS};
-                            color: white;
-                            border: none;
-                            border-radius: {ModernUITheme.RADIUS_SM};
-                            padding: {ModernUITheme.SPACE_XS} {ModernUITheme.SPACE_SM};
-                            font-size: {ModernUITheme.FONT_SIZE_XS};
-                            font-weight: 500;
-                        }}
-                        QPushButton:hover {{
-                            background-color: #047857;
-                        }}
-                    """)
-                    voice_btn.setToolTip(f"Play voice note for {tanker_number}")
-
-                    voice_btn.clicked.connect(
-                        lambda checked, v_data=voice_data, t_number=tanker_number:
-                        self.play_ban_voice(v_data, t_number)
-                    )
-                    self.bans_table.setCellWidget(row, 7, voice_btn)
-                else:
-                    no_voice_item = QTableWidgetItem("No Voice" if not voice_data else "Audio N/A")
-                    no_voice_item.setForeground(QColor(ModernUITheme.TEXT_MUTED))
-                    no_voice_item.setFlags(no_voice_item.flags() & ~Qt.ItemIsEnabled)
-                    no_voice_item.setToolTip("No voice recording available")
-                    self.bans_table.setItem(row, 7, no_voice_item)
-
-            status_msg = f"Loaded {len(bans)} ban records from local database"
-            if filters:
-                status_msg += " (filtered)"
-            else:
-                status_msg += " (all records)"
-            self.status_bar.showMessage(status_msg)
-
-            logger.info(f"Ban table loaded with {len(bans)} records, filters: {filters is not None}")
-
-        except Exception as e:
-            logger.error(f"Error loading bans table: {e}")
-            self.status_bar.showMessage(f"Error loading ban records: {e}")
-            if hasattr(self, 'ban_count_label'):
-                self.ban_count_label.setText("❌ Error loading ban records from local database")
+        """Legacy method redirects to async version"""
+        self.load_bans_table_async()
 
     def play_ban_voice(self, voice_data, tanker_number):
-        """Play voice note from ban management table"""
-        if voice_data and self.audio_recorder:
+        """Play voice note from ban management table - WORKING VERSION"""
+        if voice_data and hasattr(self, 'audio_recorder'):
             try:
                 self.status_bar.showMessage(f"Playing voice note for {tanker_number}...")
-                self.audio_recorder.play_audio(voice_data,
-                    lambda success, msg: self.status_bar.showMessage(
-                        f"Voice playback {'completed' if success else 'failed'} for {tanker_number}"
-                    )
-                )
+
+                def playback_callback(success, msg):
+                    result_msg = f"Voice playback {'completed' if success else 'failed'} for {tanker_number}"
+                    self.status_bar.showMessage(result_msg)
+                    logger.info(result_msg)
+
+                self.audio_recorder.play_audio(voice_data, playback_callback)
+
             except Exception as e:
                 logger.error(f"Error playing ban voice: {e}")
                 QMessageBox.warning(self, "Error", f"Audio playback failed: {e}")
-
+        else:
+            msg = "No voice data available" if not voice_data else "Audio system not available"
+            self.status_bar.showMessage(msg)
+            logger.warning(msg)
     def load_logs_table(self, filters=None):
         """Load logs table with proper filter handling"""
         try:
@@ -5407,13 +7170,15 @@ class MainWindow(QMainWindow):
 
     # Navigation methods
     def show_dashboard(self):
-        """Show dashboard page"""
+        """Show dashboard page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.dashboard_page)
-            self.refresh_dashboard()
-            self.status_bar.showMessage("Dashboard page loaded")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'dashboard_page'):
+                self.stacked_widget.setCurrentWidget(self.dashboard_page)
+                self.refresh_dashboard_async()  # Changed to async
+                self.status_bar.showMessage("Dashboard page loaded")
         except Exception as e:
             logger.error(f"Error showing dashboard: {e}")
+
 
     def show_verification(self):
         """Show auto verification page"""
@@ -5432,23 +7197,24 @@ class MainWindow(QMainWindow):
             logger.error(f"Error showing manual verify page: {e}")
 
     def show_bans(self):
-        """Show ban management page"""
+        """Show ban management page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.bans_page)
-            self.ban_filters_applied = False
-            self.current_ban_filters = None
-            self.load_bans_table()
-            self.status_bar.showMessage("Ban management page loaded - Showing all records")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'bans_page'):
+                self.stacked_widget.setCurrentWidget(self.bans_page)
+                self.ban_filters_applied = False
+                self.current_ban_filters = None
+                self.load_bans_table_async()  # Changed to async
+                self.status_bar.showMessage("Ban management page loaded")
         except Exception as e:
             logger.error(f"Error showing bans page: {e}")
-            self.status_bar.showMessage(f"Error loading ban management page: {e}")
 
     def show_logs(self):
-        """Show activity logs page"""
+        """Show activity logs page with async loading"""
         try:
-            self.stacked_widget.setCurrentWidget(self.logs_page)
-            self.load_logs_table()
-            self.status_bar.showMessage("Activity logs page loaded")
+            if hasattr(self, 'stacked_widget') and hasattr(self, 'logs_page'):
+                self.stacked_widget.setCurrentWidget(self.logs_page)
+                self.load_logs_table_async()  # Changed to async
+                self.status_bar.showMessage("Activity logs page loaded")
         except Exception as e:
             logger.error(f"Error showing logs page: {e}")
 
@@ -5496,74 +7262,11 @@ class MainWindow(QMainWindow):
             self.local_path_input.setText(file_path)
 
     def test_server_connection(self):
-        """Test server database connection"""
-        try:
-            self.server_status_label.setText("Server Status: Testing...")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_SECONDARY};")
-            QApplication.processEvents()
-
-            server_path = self.server_path_input.text().strip()
-            if not server_path:
-                self.server_status_label.setText("Server Status: ❌ No path specified")
-                self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            if not PYODBC_AVAILABLE:
-                self.server_status_label.setText("Server Status: ❌ pyodbc not available")
-                self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            connection_strings = [
-                f"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={server_path};",
-                f"Driver={{Microsoft Access Driver (*.mdb)}};DBQ={server_path};",
-            ]
-
-            for conn_str in connection_strings:
-                try:
-                    conn = pyodbc.connect(conn_str, timeout=3)
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM VehicleMaster")
-                    count = cursor.fetchone()[0]
-                    conn.close()
-                    self.server_status_label.setText(f"Server Status: ✅ Connected ({count} vehicles)")
-                    self.server_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
-                    return
-                except Exception:
-                    continue
-
-            self.server_status_label.setText("Server Status: ❌ Connection failed")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-
-        except Exception as e:
-            self.server_status_label.setText(f"Server Status: ❌ Error: {str(e)[:50]}")
-            self.server_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-
+        """Legacy method redirects to async version"""
+        self.test_server_connection_async()
     def test_local_connection(self):
-        """Test local database connection"""
-        try:
-            self.local_status_label.setText("Local Status: Testing...")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.TEXT_SECONDARY};")
-            QApplication.processEvents()
-
-            local_path = self.local_path_input.text().strip()
-            if not local_path:
-                self.local_status_label.setText("Local Status: ❌ No path specified")
-                self.local_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
-                return
-
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-
-            with sqlite3.connect(local_path, timeout=10) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-
-            self.local_status_label.setText(f"Local Status: ✅ Connected ({len(tables)} tables)")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.SUCCESS}; font-weight: 600;")
-
-        except Exception as e:
-            self.local_status_label.setText(f"Local Status: ❌ Error: {str(e)[:50]}")
-            self.local_status_label.setStyleSheet(f"color: {ModernUITheme.ERROR}; font-weight: 600;")
+        """Legacy method redirects to async version"""
+        self.test_local_connection_async()
 
     def test_all_connections(self):
         """Test all database connections"""
@@ -5850,11 +7553,15 @@ class MainWindow(QMainWindow):
         """Clean shutdown with improved cleanup"""
         try:
             logger.info(f"TDF System shutdown initiated - User: {self.user_info['username']}")
-
-            if self.audio_recorder:
+            if hasattr(self, 'db_worker') and self.db_worker:
+                logger.info("Stopping database worker thread...")
+                self.db_worker.stop_thread()
+            for overlay in self.loading_overlays.values():
+                overlay.hide_loading()
+            if hasattr(self, 'audio_recorder') and self.audio_recorder:
                 self.audio_recorder.stop_any_operation()
 
-            if self.warning_sound:
+            if hasattr(self, 'warning_sound') and self.warning_sound:
                 self.warning_sound.stop()
 
             if hasattr(self, 'monitor_timer') and self.monitor_timer:
@@ -5870,7 +7577,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Error during shutdown: {e}")
             event.accept()
-
 def main():
     """Main entry point with modern UI and enhanced functionality"""
     try:
@@ -6023,7 +7729,12 @@ def main():
         except:
             print(f"FATAL ERROR: {e}")
         return 1
+    window = MainWindow(user_info, config_manager)
+    if hasattr(window, 'db_worker'):
+        window.db_worker.start()
+        logger.info("Database worker thread started")
 
+    window.show()
 if __name__ == "__main__":
     try:
         exit_code = main()
